@@ -22,7 +22,7 @@ O workspace pnpm, o modelo compartilhado e os contratos locais estão implementa
 | Validação manual Ethereum Sepolia → OP Sepolia | Não executada |
 | Endereços, hashes, blocos e verificação de código-fonte | Ainda inexistentes |
 
-O arquivo [docs/superpowers/plans/2026-10-04-testnet-payment-orchestrator.md](docs/superpowers/plans/2026-10-04-testnet-payment-orchestrator.md) contém as tarefas em checklist. Uma tarefa só será marcada após sua implementação e verificação.
+O arquivo [docs/implementation-plan.md](docs/implementation-plan.md) contém as tarefas em checklist. Uma tarefa só será marcada após sua implementação e verificação.
 
 ## Escopo do MVP
 
@@ -94,9 +94,9 @@ O bridge deve ser validado manualmente em Ethereum Sepolia e OP Sepolia com cart
 
 ## Documentação de design
 
-O design do MVP, os contratos, os estados, os limites e os critérios de aceite estão em [docs/superpowers/specs/2026-10-04-orquestrador-pagamentos-testnet-design.md](docs/superpowers/specs/2026-10-04-orquestrador-pagamentos-testnet-design.md).
+O design do MVP, os contratos, os estados, os limites e os critérios de aceite estão em [docs/design.md](docs/design.md).
 
-O plano técnico de implementação, incluindo frontend, backend, contratos e testes, está em [docs/superpowers/plans/2026-10-04-testnet-payment-orchestrator.md](docs/superpowers/plans/2026-10-04-testnet-payment-orchestrator.md).
+O plano técnico de implementação, incluindo frontend, backend, contratos e testes, está em [docs/implementation-plan.md](docs/implementation-plan.md).
 
 ## Próximo estado esperado
 

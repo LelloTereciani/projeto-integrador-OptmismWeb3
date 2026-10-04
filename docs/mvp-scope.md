@@ -8,7 +8,7 @@ O projeto é uma demonstração educacional e de portfólio executada somente em
 
 - **Incluído** descreve comportamento planejado para o MVP. Não significa que já exista código ou evidência de testnet.
 - **Fora do MVP** descreve funcionalidades que não serão implementadas neste release, mesmo se forem comuns em produtos financeiros ou Web3.
-- O estado real do repositório está no `README.md`; o plano de execução e suas tarefas ainda pendentes estão em `docs/superpowers/plans/2026-10-04-testnet-payment-orchestrator.md`.
+- O estado real do repositório está no `README.md`; o plano de execução e suas tarefas ainda pendentes estão em `docs/implementation-plan.md`.
 - Uma afirmação de implementação, teste, endereço, hash ou validação só pode aparecer no README após evidência verificável correspondente.
 - A visão de evolução para produção está em `docs/production-evolution.md`. Ela descreve arquitetura futura e não altera os itens incluídos neste MVP.
 

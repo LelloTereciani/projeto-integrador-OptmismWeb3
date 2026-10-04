@@ -18,7 +18,7 @@ A configuração de carteira terá allowlist exclusiva dessas duas redes. A apli
 ## Jornada em uma página
 
 1. **Cabeçalho de ambiente:** aviso permanente `Ambiente de demonstração — sem dinheiro real`, rede atual, endereço abreviado e botão de conexão.
-2. **Fatura fictícia:** formulário com dados de demonstração, BRL, beneficiário e endereço EVM de teste. Os valores de cotação e tarifa são calculados localmente e exibidos antes da aprovação comercial.
+2. **Fatura fictícia:** formulário com dados de demonstração, BRL, beneficiário e endereço EVM de teste. O backend calcula a cotação e a tarifa determinísticas e as devolve para exibição antes da aprovação comercial.
 3. **Linha de progresso:** mostra estados de negócio, L1, L2 e payout fictício sem misturá-los.
 4. **Ações de carteira:** cada ação mostra rede, contrato/bridge de destino, token, endereço relevante e valor exato antes de abrir a carteira.
 5. **Provas técnicas:** cards para hash L1, hash/estado do crédito L2, transações de `PaymentRegistry`, evento `PaymentSettled`, chain ID e link de explorador.

@@ -1,16 +1,16 @@
 # Testnet Payment Orchestrator Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+O checklist abaixo registra a implementação e a verificação de cada etapa do projeto.
 
 **Goal:** Build a full-stack, testnet-only web MVP that demonstrates an Ethereum Sepolia deposit into OP Sepolia and a fictitious `MockUSD` settlement on OP Sepolia.
 
-**Status:** Approved for future implementation. No code has been created from this plan yet.
+**Status:** Implementação em andamento. O README registra o estado efetivo de cada componente.
 
 **Architecture:** A Next.js application contains the React frontend and a small HTTP backend with SQLite persistence for fictional payment scenarios and chain evidence. A separate Hardhat workspace compiles, tests, and deploys `MockUSD` and `PaymentRegistry`. The browser signs every write through an injected wallet; server-side adapter code independently reads receipts and events before it records an on-chain stage as confirmed.
 
 **Tech Stack:** Next.js, React, TypeScript, Wagmi, Viem, Zod, SQLite with Drizzle ORM, Hardhat 3, Solidity, OpenZeppelin Contracts, Vitest, Playwright, pnpm workspaces.
 
-**Spec:** `docs/superpowers/specs/2026-10-04-orquestrador-pagamentos-testnet-design.md`, `docs/mvp-scope.md`, and `docs/frontend.md`
+**Spec:** `docs/design.md`, `docs/mvp-scope.md`, and `docs/frontend.md`
 
 ## Global Constraints
 
@@ -87,7 +87,8 @@
 │   ├── deployment-evidence.md
 │   ├── frontend.md
 │   ├── mvp-scope.md
-│   └── superpowers/
+│   ├── design.md
+│   └── implementation-plan.md
 ├── .env.example
 ├── .gitignore
 ├── package.json
