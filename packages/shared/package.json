@@ -1,0 +1,13 @@
+{
+  "name": "@payment-demo/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/payment.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit --strict --target ES2022 --lib ESNext,DOM --module ESNext --moduleResolution Bundler src/payment.ts src/payment.test.ts"
+  }
+}
