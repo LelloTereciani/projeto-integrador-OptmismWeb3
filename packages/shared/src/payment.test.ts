@@ -83,13 +83,20 @@ describe("shared payment domain", () => {
       mockUsdAmount: 19_000_000n,
       exchangeRate: "5.00",
       feeAmount: "1.00",
+      simulationLabel: "Simulated testnet quote",
     };
     const scenario: PaymentScenario = {
       id: "scenario-1",
+      paymentId: `0x${"1".repeat(64)}`,
+      termsHash: `0x${"2".repeat(64)}`,
       stage,
+      scenarioType: "fictional-testnet",
+      payer: "0x0000000000000000000000000000000000000002",
       beneficiary: "0x0000000000000000000000000000000000000001",
       quote,
       transactions: [],
+      createdAt: "2026-10-04T12:00:00.000Z",
+      updatedAt: "2026-10-04T12:00:00.000Z",
     };
 
     expect({ scenario, transactionStage }).toMatchObject({

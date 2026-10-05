@@ -43,14 +43,30 @@ export interface Quote {
   mockUsdAmount: bigint;
   exchangeRate: string;
   feeAmount: string;
+  simulationLabel: string;
+}
+
+export interface CreatePaymentInput {
+  payerAddress: string;
+  beneficiaryAddress: string;
+  brlAmountCents: bigint;
+  quotedRateBps: bigint;
+  feeBps: bigint;
 }
 
 export interface PaymentScenario {
   id: string;
+  paymentId: `0x${string}`;
+  termsHash: `0x${string}`;
   stage: PaymentStage;
+  scenarioType: "fictional-testnet";
+  payer: `0x${string}`;
   beneficiary: `0x${string}`;
   quote: Quote;
   transactions: TransactionEvidence[];
+  createdAt: string;
+  updatedAt: string;
+  commerciallyApprovedAt?: string;
 }
 
 export function parseAtomicMockUsd(value: string): bigint {

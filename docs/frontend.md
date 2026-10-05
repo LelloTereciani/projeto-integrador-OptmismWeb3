@@ -2,7 +2,7 @@
 
 ## Decisão
 
-O frontend será uma aplicação web de página única, responsiva e em português, construída com React e TypeScript. Usará Wagmi para ciclo de carteira e escrita de contratos, e Viem para tipos EVM, unidades, ABIs, leituras e recibos. As versões exatas serão definidas no início da implementação com base na documentação atual dos projetos.
+O frontend é uma aplicação web de página única, responsiva e em português, construída com Next.js 16, React 19 e TypeScript. Usa Wagmi 3 para o ciclo de carteira e Viem 2 para tipos EVM, unidades, ABIs, leituras e recibos. As versões instaladas são fixadas pelo `pnpm-lock.yaml`.
 
 O MVP suporta somente uma carteira injetada no navegador, como MetaMask. Isso evita configurar WalletConnect, não exige uma chave de projeto e mantém a demonstração reduzida a uma integração de carteira verificável.
 
@@ -18,7 +18,7 @@ A configuração de carteira terá allowlist exclusiva dessas duas redes. A apli
 ## Jornada em uma página
 
 1. **Cabeçalho de ambiente:** aviso permanente `Ambiente de demonstração — sem dinheiro real`, rede atual, endereço abreviado e botão de conexão.
-2. **Fatura fictícia:** formulário com dados de demonstração, BRL, beneficiário e endereço EVM de teste. O backend calcula a cotação e a tarifa determinísticas e as devolve para exibição antes da aprovação comercial.
+2. **Cenário de fatura fictícia:** formulário mínimo com valor em BRL e endereços EVM de teste do pagador e beneficiário. Não coleta número, texto, arquivo nem dados reais de fatura. O backend calcula a cotação e a tarifa determinísticas antes da aprovação comercial.
 3. **Linha de progresso:** mostra estados de negócio, L1, L2 e payout fictício sem misturá-los.
 4. **Ações de carteira:** cada ação mostra rede, contrato/bridge de destino, token, endereço relevante e valor exato antes de abrir a carteira.
 5. **Provas técnicas:** cards para hash L1, hash/estado do crédito L2, transações de `PaymentRegistry`, evento `PaymentSettled`, chain ID e link de explorador.
@@ -32,7 +32,7 @@ A configuração de carteira terá allowlist exclusiva dessas duas redes. A apli
 | 3 | Criar a operação no `PaymentRegistry` | OP Sepolia | recibo com `PaymentCreated` |
 | 4 | Aprovar a operação no `PaymentRegistry` | OP Sepolia | recibo com `PaymentApproved` |
 | 5 | Aprovar exatamente o valor de `MockUSD` para o `PaymentRegistry` | OP Sepolia | allowance lida novamente na cadeia |
-| 6 | Liquidar a operação | OP Sepolia | recibo com `PaymentSettled` e saldo do beneficiário atualizado |
+| 6 | Liquidar a operação | OP Sepolia | recibo com `PaymentSettled` e estado `settled` relido do registro; a conferência manual do saldo do beneficiário fica pendente até a jornada pública |
 | 7 | Exibir payout local simulado | Aplicação | etapa 6 confirmada |
 
 Antes das ações que escrevem em contrato, o frontend valida conta, rede, destinatário, contrato, amount, calldata e estado atual. Para valores on-chain, usa `bigint` e conversão explícita de unidades; nunca `number` do JavaScript. A aprovação do ERC-20 será sempre pelo valor exato da operação, nunca ilimitada.

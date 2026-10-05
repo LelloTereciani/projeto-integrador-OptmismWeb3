@@ -14,7 +14,7 @@ O projeto é uma demonstração educacional e de portfólio executada somente em
 
 ## Incluído
 
-- Uma operação B2B fictícia: fatura, pagador, beneficiário, valor em BRL, cotação, tarifa e payout local fictícios.
+- Uma operação B2B fictícia: cenário que representa uma fatura, endereços de teste do pagador e beneficiário, valor em BRL, cotação, tarifa e payout local fictícios. O MVP não registra número, texto nem arquivo de fatura.
 - Fórmula local e determinística para a cotação e a tarifa; não há consulta a uma taxa de mercado.
 - Depósito real de ETH de teste da Ethereum Sepolia para a OP Sepolia pelo Standard Bridge.
 - Contratos `MockUSD` e `PaymentRegistry` na OP Sepolia, com operações e eventos verificáveis.

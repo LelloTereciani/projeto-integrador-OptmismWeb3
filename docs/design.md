@@ -1,6 +1,6 @@
 # Orquestrador de pagamentos internacionais para PMEs — design do MVP
 
-**Status:** proposta de design aprovada para detalhamento do plano de implementação
+**Status:** implementação local concluída; deploy e validação pública pendentes
 
 ## 1. Objetivo e limites
 
@@ -23,7 +23,7 @@ O produto não é uma plataforma de remessas e não movimenta ativos, dados banc
 | Dados comerciais | Fictícios e fora da blockchain |
 | Câmbio e tarifas | Fórmula local determinística, sem provedor externo |
 | Backend | Registra o cenário, o histórico da interface e referências às transações; não é fonte de verdade para saldos ou confirmações on-chain |
-| Extensibilidade | Uma porta pequena, `RollupAdapter`, com implementação única `OptimismAdapter` |
+| Extensibilidade | Porta interna `PaymentChainVerifier` e implementação de verificação `OptimismAdapter`; outros rollups exigiriam nova implementação e revisão do fluxo |
 
 `SepoliaETH` e o ETH de teste na OP Sepolia representam saldos na mesma carteira em redes diferentes. O depósito reduz o saldo na L1 e credita o saldo na L2 após o relay. Isso é independente de `MockUSD` e não cria uma conversão de moeda.
 
@@ -31,7 +31,7 @@ O produto não é uma plataforma de remessas e não movimenta ativos, dados banc
 
 ### Incluído
 
-- Cadastro de uma fatura fictícia, valor em BRL, beneficiário e endereço de carteira de teste.
+- Cadastro de um cenário que representa uma fatura fictícia: valor em BRL e endereços de carteiras de teste do pagador e beneficiário. Não há campos de número, texto ou arquivo de fatura.
 - Simulação determinística de taxa BRL/USD, tarifa e valor líquido em `MockUSD`.
 - Confirmação comercial explícita do pagador na interface.
 - Conexão de carteira e troca guiada entre Ethereum Sepolia e OP Sepolia.
@@ -55,18 +55,20 @@ O produto não é uma plataforma de remessas e não movimenta ativos, dados banc
 
 ```text
 Rascunho
-  → Cotado (simulação local)
+  → Cotado (simulação calculada no servidor)
   → Aprovado comercialmente
   → Depósito L1 enviado
   → Aguardando crédito na L2
   → ETH disponível na L2
-  → Aprovação de MockUSD enviada
+  → Operação criada no PaymentRegistry
+  → Operação aprovada pelo pagador
+  → Valor exato de MockUSD aprovado para o PaymentRegistry
   → Liquidação L2 enviada
   → Liquidado na L2
   → Payout local simulado
 ```
 
-Os estados `Rascunho`, `Cotado`, `Aprovado comercialmente` e `Payout local simulado` são estados da aplicação. `Depósito L1 enviado`, `Aguardando crédito na L2`, `ETH disponível na L2`, `Aprovação de MockUSD enviada`, `Liquidação L2 enviada` e `Liquidado na L2` dependem de evidência on-chain.
+Os estados `Rascunho`, `Cotado`, `Aprovado comercialmente` e `Payout local simulado` são estados da aplicação. Os demais avanços dependem de evidência on-chain confirmada pelo backend.
 
 A tela apresenta os estágios em três blocos sem misturá-los:
 
@@ -124,26 +126,15 @@ Toda tela que mostrar valor precisa exibir o rótulo `Ambiente de demonstração
 
 ### Backend
 
-Armazena apenas os dados fictícios do cenário e referências verificáveis: `paymentId`, hashes de transação, chain ID, endereços públicos, timestamps observados e estados derivados. A fatura completa, quando registrada, não é enviada à blockchain; somente `termsHash` é publicado.
+Armazena apenas os dados fictícios do cenário e referências verificáveis: `paymentId`, hashes de transação, chain ID, endereços públicos, timestamps observados e estados derivados. Não há armazenamento de fatura completa; somente `termsHash` é publicado na blockchain.
+
+A cotação local usa uma taxa fixa, controlada pelo servidor, de `R$ 5,0000 por MockUSD` (`50.000` pontos-base) e uma tarifa fictícia de `1,00%` (`100` pontos-base). A tarifa é arredondada para cima ao centavo e o valor líquido convertido é arredondado para baixo à menor unidade de `MockUSD`, que possui seis casas decimais. Todos os cálculos usam `bigint`; valores de taxa ou tarifa enviados pelo navegador não alteram a cotação, a persistência ou o `termsHash`.
 
 Para o primeiro release, o backend trata uma transação como confirmada somente depois de obter o recibo da rede correspondente. Em caso de queda, a interface pode reconsultar o hash e recompor o estado. Ele nunca altera um status on-chain com base apenas em uma requisição do navegador.
 
-### RollupAdapter
+### Adaptação ao rollup
 
-Uma interface interna concentra configuração e leitura de rede:
-
-```ts
-interface RollupAdapter {
-  readonly l1ChainId: number;
-  readonly l2ChainId: number;
-  explorerTxUrl(chainId: number, hash: string): string;
-  submitL1EthDeposit(...): Promise<string>;
-  getDepositStatus(l1TxHash: string): Promise<DepositStatus>;
-  waitForReceipt(chainId: number, txHash: string): Promise<TxReceipt>;
-}
-```
-
-`OptimismAdapter` será a única implementação. A porta impede que detalhes de URL de explorador, bridge e acompanhamento do depósito vazem pela aplicação, mas nenhuma implementação alternativa será criada neste MVP.
+O frontend envia o depósito e as ações de contrato por uma carteira injetada. No servidor, `PaymentChainVerifier` define as leituras exigidas pelo serviço de transações; `OptimismAdapter` verifica o bridge L1, o crédito L2, recibos e eventos dos contratos da OP Sepolia. URLs dos exploradores ficam em um módulo separado. Essa separação permite avaliar outro rollup no futuro, mas **não** constitui suporte atual a outras redes.
 
 ## 7. Tratamento de erros
 
