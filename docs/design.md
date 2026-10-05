@@ -27,6 +27,8 @@ O produto não é uma plataforma de remessas e não movimenta ativos, dados banc
 
 `SepoliaETH` e o ETH de teste na OP Sepolia representam saldos na mesma carteira em redes diferentes. O depósito reduz o saldo na L1 e credita o saldo na L2 após o relay. Isso é independente de `MockUSD` e não cria uma conversão de moeda.
 
+O `MockUSD` de teste precisa ser emitido pelo dono do contrato para a carteira pagadora antes da liquidação. O caminho recomendado de demonstração prepara e confere esse saldo antes de iniciar o cenário, quando já há ETH na OP Sepolia para o gas. O depósito L1 → L2 é uma etapa didática imposta pela sequência da interface; o contrato `PaymentRegistry` não exige esse depósito e não associa seu ETH ao token. A interface ainda não executa uma checagem prévia automática de `balanceOf`.
+
 ## 3. Escopo da demonstração
 
 ### Incluído

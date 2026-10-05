@@ -19,6 +19,7 @@ O aplicativo demonstra um **cenário fictício** de pagamento B2B: calcula uma c
 | Depósito Ethereum Sepolia → OP Sepolia | **Confirmado** por recibos públicos e `sourceHash` derivado do evento L1 |
 | Mint de `MockUSD` | **Confirmado** na OP Sepolia: `19,8 MockUSD` para a carteira pagadora |
 | Jornada manual de pagamento em `MockUSD` | **Pendente**; o depósito de ETH e o mint não executam a liquidação |
+| Checagem prévia automática do saldo de `MockUSD` | **Não implementada**; confira o saldo na OP Sepolia antes da jornada |
 
 Os testes de navegador exercitam a integração da interface com respostas controladas; a prova do depósito público está nos recibos abaixo. Eles não comprovam o pagamento em `MockUSD`. O formulário e a cotação podem ser executados localmente sem endereços de contratos; as ações de carteira exigem configuração e tokens de teste.
 
@@ -110,13 +111,15 @@ pnpm --filter @payment-demo/web test:e2e
 
 ## Executar e comprovar a jornada pública
 
-Os contratos listados acima já estão na OP Sepolia. Para uma demonstração completa, use duas carteiras **de teste** diferentes: a pagadora assina as transações e a beneficiária recebe `MockUSD`. A pagadora precisa de ETH de teste na **Ethereum Sepolia** para o depósito de `0,0001 ETH` e o gas, além de ETH de teste na **OP Sepolia** para as ações de contrato. Consulte os [faucets listados pela Optimism](https://docs.optimism.io/app-developers/tools-sdks/faucets) e confira os saldos atuais antes de começar. A carteira de deploy `0x90f10aD923cc949b1F000134702452821b44bef6` é a única que pode emitir o `MockUSD` público; se você não a controla, implante seus próprios contratos seguindo a seção seguinte ou solicite tokens de teste ao emissor.
+**Prepare as carteiras e os saldos antes de iniciar o cenário.** Os contratos listados acima já estão na OP Sepolia. Use duas carteiras **de teste** diferentes: a pagadora assina as transações e a beneficiária recebe `MockUSD`. A pagadora precisa de ETH de teste na **Ethereum Sepolia** para o depósito de `0,0001 ETH` e o gas, ETH de teste na **OP Sepolia** para as ações de contrato e `MockUSD` suficiente na **OP Sepolia** para a cotação. Consulte os [faucets listados pela Optimism](https://docs.optimism.io/app-developers/tools-sdks/faucets) e confira os saldos atuais antes de começar. **Os faucets de ETH usados para gas não distribuem este `MockUSD` criado pelo projeto.** A carteira de deploy `0x90f10aD923cc949b1F000134702452821b44bef6` é a única que pode emitir o `MockUSD` público; se você não a controla, implante seus próprios contratos seguindo a seção seguinte ou solicite tokens de teste ao emissor.
 
-Se você controla a carteira emissora configurada no cofre local do Hardhat, distribua tokens à **mesma carteira pagadora** que usará no navegador. Substitua `0xCARTEIRA_PAGADORA` pelo endereço completo; `50` é apenas uma quantidade de exemplo, que deve cobrir a cotação escolhida. O comando pede a senha do cofre no terminal e envia uma transação de teste na OP Sepolia:
+Se você controla a carteira emissora configurada no cofre local do Hardhat, distribua tokens à **mesma carteira pagadora** que usará no navegador. Faça isso antes da demonstração, quando já houver ETH na OP Sepolia para o gas do mint. Se ainda faltar ETH nessa rede, obtenha-o primeiro pelo faucet ou por um depósito L1 → L2. Substitua `0xCARTEIRA_PAGADORA` pelo endereço completo; `50` é apenas uma quantidade de exemplo, que deve cobrir a cotação escolhida. O comando pede a senha do cofre no terminal e envia uma transação de teste na OP Sepolia:
 
 ```bash
 MOCK_USD_ADDRESS=0x0202d5f1D5427BcA9d3aD546832B0D82fcd7aD92 MOCK_USD_RECIPIENT=0xCARTEIRA_PAGADORA MOCK_USD_AMOUNT=50 pnpm --filter @payment-demo/contracts exec hardhat run scripts/mint-demo-token.ts --network opSepolia --build-profile production --no-typechain
 ```
+
+Confirme o recibo do mint e o saldo de `MockUSD` da pagadora na OP Sepolia antes de iniciar o fluxo no app. O mint é uma preparação feita pelo emissor: não é parte do depósito de ETH, não converte ETH em `MockUSD` e não paga a beneficiária. Nesta versão, a interface não verifica esse saldo antecipadamente. O depósito é uma etapa didática obrigatória na sequência do app para demonstrar o OP Stack; o contrato de pagamento em si opera somente na L2 e não depende economicamente desse depósito.
 
 No [app local](http://127.0.0.1:3000), siga esta sequência. Revise sempre a rede, o destinatário, o contrato e o valor apresentados antes de confirmar cada assinatura na carteira:
 
@@ -183,6 +186,7 @@ Os [depósitos do OP Stack](https://docs.optimism.io/op-stack/bridging/deposit-f
 - Não há autenticação de usuário, custódia, assinatura automática, relayer, WalletConnect, saque L2 → L1, bridge de `MockUSD` ou suporte a outros rollups.
 - O SQLite local guarda somente o cenário fictício e referências públicas de transações. Este MVP não oferece gestão multiusuário nem proteção operacional para dados financeiros reais.
 - A interface mantém o cenário ativo apenas na aba atual; recarregar a página não restaura automaticamente uma jornada já gravada no SQLite.
+- A interface ainda não faz uma checagem prévia automática de `balanceOf` de `MockUSD`; o preparo do token e a conferência do saldo são manuais.
 - O contrato não faz swap, conversão ou pagamento internacional. Ele registra e transfere o token de teste entre carteiras na OP Sepolia.
 - O projeto usa a rede Optimism; não opera um sequencer, batcher nem constrói um rollup próprio.
 
