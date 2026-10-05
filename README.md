@@ -73,10 +73,9 @@ git clone https://github.com/LelloTereciani/projeto-integrador-OptmismWeb3.git
 cd projeto-integrador-OptmismWeb3
 pnpm install --frozen-lockfile
 cp apps/web/.env.example apps/web/.env.local
-pnpm --filter @payment-demo/web exec next dev
 ```
 
-Abra `http://localhost:3000`. O SQLite é criado automaticamente em `apps/web/payment-demo.sqlite` no comando acima, ou no caminho definido por `PAYMENT_DB_PATH`. O arquivo é ignorado pelo Git. RPCs públicos de teste têm valores padrão e podem ser substituídos em `apps/web/.env.local`.
+O frontend e as rotas do backend rodam no mesmo processo Next.js. O SQLite é criado automaticamente em `apps/web/payment-demo.sqlite`, ou no caminho definido por `PAYMENT_DB_PATH`. O arquivo é ignorado pelo Git. RPCs públicos de teste têm valores padrão e podem ser substituídos em `apps/web/.env.local`.
 
 As duas variáveis `NEXT_PUBLIC_*_ADDRESS` vêm vazias no exemplo para que cada pessoa escolha entre inspecionar o deploy público acima ou fazer seu próprio deploy. Para apontar o app aos contratos públicos, preencha `apps/web/.env.local` com:
 
@@ -85,7 +84,13 @@ NEXT_PUBLIC_MOCK_USD_ADDRESS=0x0202d5f1D5427BcA9d3aD546832B0D82fcd7aD92
 NEXT_PUBLIC_PAYMENT_REGISTRY_ADDRESS=0xEB8642297c98206502e8fc05f659e5a2b12b051c
 ```
 
-Reinicie o servidor após alterar essas variáveis. A carteira emissora controla o mint do token público: para executar **toda** a jornada com a sua carteira, implante seus próprios contratos e distribua `MockUSD` de teste a ela pelo passo abaixo. **Nunca coloque chave privada em `apps/web/.env.local` ou em uma variável `NEXT_PUBLIC_`**. A chave de deploy/mint pertence apenas ao cofre local do Hardhat ou a um ambiente privado ignorado pelo Git.
+Depois de salvar `apps/web/.env.local`, inicie o servidor na raiz do repositório:
+
+```bash
+pnpm --filter @payment-demo/web exec next dev --hostname 127.0.0.1 --port 3000
+```
+
+Abra **[http://127.0.0.1:3000](http://127.0.0.1:3000)** no navegador que contém sua carteira injetada, como MetaMask. Mantenha o terminal aberto; `Ctrl+C` encerra o servidor. Se mudar `NEXT_PUBLIC_*_ADDRESS`, reinicie o servidor. Essa URL funciona na própria máquina e não significa que a aplicação web esteja hospedada publicamente. **Nunca coloque chave privada em `apps/web/.env.local` ou em uma variável `NEXT_PUBLIC_`**. A chave de deploy/mint pertence apenas ao cofre local do Hardhat ou a um ambiente privado ignorado pelo Git.
 
 ## Verificação local
 
@@ -101,7 +106,26 @@ pnpm --filter @payment-demo/web test:e2e
 
 `pnpm test` inclui testes de domínio, rotas, SQLite, recibos/eventos, estados de carteira e contratos na rede Hardhat simulada. `test:e2e` usa Playwright/Chromium e mocks determinísticos de carteira, RPC e API; na primeira execução, instale o navegador com `pnpm --filter @payment-demo/web exec playwright install chromium`. Nenhum teste envia fundos ou transações para testnets públicas.
 
-## Implantar e experimentar na OP Sepolia
+## Executar e comprovar a jornada pública
+
+Os contratos listados acima já estão na OP Sepolia. Para uma demonstração completa, use duas carteiras **de teste** diferentes: a pagadora assina as transações e a beneficiária recebe `MockUSD`. A pagadora precisa de ETH de teste na **Ethereum Sepolia** para o depósito de `0,0001 ETH` e o gas, além de ETH de teste na **OP Sepolia** para as ações de contrato. Consulte os [faucets listados pela Optimism](https://docs.optimism.io/app-developers/tools-sdks/faucets) e confira os saldos atuais antes de começar. A carteira de deploy `0x90f10aD923cc949b1F000134702452821b44bef6` é a única que pode emitir o `MockUSD` público; se você não a controla, implante seus próprios contratos seguindo a seção seguinte ou solicite tokens de teste ao emissor.
+
+Se você controla a carteira emissora configurada no cofre local do Hardhat, distribua tokens à **mesma carteira pagadora** que usará no navegador. Substitua `0xCARTEIRA_PAGADORA` pelo endereço completo; `50` é apenas uma quantidade de exemplo, que deve cobrir a cotação escolhida. O comando pede a senha do cofre no terminal e envia uma transação de teste na OP Sepolia:
+
+```bash
+MOCK_USD_ADDRESS=0x0202d5f1D5427BcA9d3aD546832B0D82fcd7aD92 MOCK_USD_RECIPIENT=0xCARTEIRA_PAGADORA MOCK_USD_AMOUNT=50 pnpm --filter @payment-demo/contracts exec hardhat run scripts/mint-demo-token.ts --network opSepolia --build-profile production --no-typechain
+```
+
+No [app local](http://127.0.0.1:3000), siga esta sequência. Revise sempre a rede, o destinatário, o contrato e o valor apresentados antes de confirmar cada assinatura na carteira:
+
+1. Clique em **Conectar carteira**. Informe a conta conectada em **Carteira pagadora de teste**, outra conta em **Carteira beneficiária de teste** e, por exemplo, `100,00` no valor fictício em BRL. Clique em **Gerar cotação simulada** e **Aprovar cenário fictício**.
+2. Na **Ethereum Sepolia (`11155111`)**, clique em **Depositar ETH de teste** e confirme `0,0001 ETH` mais gas na carteira. Guarde o hash L1. Aguarde o recibo L1 e use **Verificar crédito na OP Sepolia** até o backend confirmar a execução correspondente na L2. Não envie um segundo depósito enquanto o primeiro estiver pendente.
+3. Na **OP Sepolia (`11155420`)**, siga as ações exibidas: **Criar operação na OP Sepolia**, **Aprovar operação fictícia**, **Aprovar valor exato de MockUSD** e **Liquidar MockUSD de teste**. Cada escrita exige confirmação explícita na carteira e depois é conferida pelo backend.
+4. Após a liquidação confirmada, clique em **Exibir payout local simulado**. Esse último estado não representa conversão ou transferência bancária real.
+
+Guarde o **ID do cenário** e mantenha a aba aberta: o SQLite conserva o cenário, mas esta versão da interface não o reabre automaticamente após recarregar a página. Em **Evidências on-chain do cenário**, copie os hashes, chain IDs, blocos, status e links dos exploradores. Para comprovar a demonstração, confira no explorador o depósito L1, o crédito L2 vinculado a ele, o mint, os eventos `PaymentCreated`, `PaymentApproved` e `PaymentSettled`, a aprovação exata do token e o saldo final de `MockUSD` da beneficiária. Registre somente o que foi confirmado publicamente em [docs/deployment-evidence.md](docs/deployment-evidence.md) e atualize a tabela de estado deste README. O depósito L1, por si só, não comprova o crédito L2. Os [depósitos do OP Stack](https://docs.optimism.io/op-stack/bridging/deposit-flow) explicam essa distinção.
+
+## Implantar seus próprios contratos na OP Sepolia
 
 Use **somente uma carteira dedicada a testnet**, com ETH de teste suficiente para as duas redes. O contrato `MockUSD` existe apenas na OP Sepolia. Para abastecer a carteira, consulte os [faucets listados pela Optimism](https://docs.optimism.io/app-developers/tools-sdks/faucets). A implantação é opcional para estudar o código e executar os testes locais; ela envia transações públicas de teste.
 
@@ -135,7 +159,7 @@ Use **somente uma carteira dedicada a testnet**, com ETH de teste suficiente par
    MOCK_USD_ADDRESS=0x... MOCK_USD_RECIPIENT=0x... MOCK_USD_AMOUNT=50 pnpm --filter @payment-demo/contracts exec hardhat run scripts/mint-demo-token.ts --network opSepolia --build-profile production --no-typechain
    ```
 
-6. No navegador, informe a **mesma carteira pagadora** que assinará as transações e outra carteira de teste como beneficiária. Gere a cotação, aprove o cenário, deposite `0,0001` ETH de teste pela Ethereum Sepolia, aguarde o crédito na OP Sepolia, crie e aprove a operação, autorize apenas o valor exato de `MockUSD` e liquide. A etapa bancária final é simulada. Se o crédito L2 ainda estiver pendente, atualize a verificação; não repita o depósito por impaciência.
+6. Atualize `apps/web/.env.local` com os endereços da sua implantação, reinicie o servidor e siga a seção **Executar e comprovar a jornada pública** com suas carteiras de teste.
 
 Os [depósitos do OP Stack](https://docs.optimism.io/op-stack/bridging/deposit-flow) têm uma transação de origem na L1 e uma execução derivada na L2. O recibo L1 sozinho não comprova crédito L2. A aplicação exige essa separação antes de liberar o pagamento. A [referência de rede da Optimism](https://docs.optimism.io/op-mainnet/network-information/connecting-to-op) contém os dados atuais da OP Sepolia.
 
@@ -155,6 +179,7 @@ Os [depósitos do OP Stack](https://docs.optimism.io/op-stack/bridging/deposit-f
 - Não há transferência de reais ou dólares, câmbio de mercado, banco, payout real, fornecedor real, KYC/KYB/AML ou documentos.
 - Não há autenticação de usuário, custódia, assinatura automática, relayer, WalletConnect, saque L2 → L1, bridge de `MockUSD` ou suporte a outros rollups.
 - O SQLite local guarda somente o cenário fictício e referências públicas de transações. Este MVP não oferece gestão multiusuário nem proteção operacional para dados financeiros reais.
+- A interface mantém o cenário ativo apenas na aba atual; recarregar a página não restaura automaticamente uma jornada já gravada no SQLite.
 - O contrato não faz swap, conversão ou pagamento internacional. Ele registra e transfere o token de teste entre carteiras na OP Sepolia.
 - O projeto usa a rede Optimism; não opera um sequencer, batcher nem constrói um rollup próprio.
 
