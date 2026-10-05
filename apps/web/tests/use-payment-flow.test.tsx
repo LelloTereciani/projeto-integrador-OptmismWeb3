@@ -3,6 +3,7 @@ import { decodeFunctionData, type Address, type Hash, type Hex } from "viem";
 
 import type { PaymentScenario } from "../../../packages/shared/src/payment";
 import {
+  bufferedL1DepositGas,
   createPaymentFlowController,
   type PaymentFlowDependencies,
   type ReceiptResult,
@@ -77,6 +78,12 @@ function dependencies(overrides: Partial<PaymentFlowDependencies> = {}): Mutable
 }
 
 describe("payment wallet controller", () => {
+  it("adds a gas margin to L1 deposits after a bridge estimate fell short", () => {
+    expect(bufferedL1DepositGas(626_821n)).toBe(850_000n);
+    expect(bufferedL1DepositGas(659_794n)).toBe(857_733n);
+    expect(bufferedL1DepositGas(1_000_000n)).toBe(1_300_000n);
+  });
+
   it("blocks a write while the injected wallet is disconnected", async () => {
     const deps = dependencies({ getWallet: vi.fn(async () => null) });
     const controller = createPaymentFlowController(deps, contracts);

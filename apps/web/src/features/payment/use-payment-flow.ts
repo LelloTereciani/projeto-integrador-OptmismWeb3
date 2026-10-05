@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  estimateGas,
   getAccount,
   getBalance,
   sendTransaction,
@@ -124,6 +125,12 @@ const PAYMENT_STAGE_ORDER: PaymentStage[] = [
   "settled",
   "payout-simulated",
 ];
+
+export function bufferedL1DepositGas(estimate: bigint): bigint {
+  // The bridge calls several L1 contracts; leave room for gas use to change between estimation and inclusion.
+  const buffered = (estimate * 13n + 9n) / 10n;
+  return buffered > 850_000n ? buffered : 850_000n;
+}
 
 function serverConfirmedAction(action: WalletWriteAction, stage: PaymentStage): boolean {
   return PAYMENT_STAGE_ORDER.indexOf(stage) >= PAYMENT_STAGE_ORDER.indexOf(CONFIRMED_SCENARIO_STAGE_BY_ACTION[action]);
@@ -474,12 +481,22 @@ export function createWagmiPaymentFlowDependencies(config: Config): PaymentFlowD
       return { fingerprint: fingerprint(intent.to, intent.data, intent.value) };
     },
     async send(intent) {
+      const gas = intent.action === "deposit-l1"
+        ? bufferedL1DepositGas(await estimateGas(config, {
+          account: intent.account,
+          chainId: intent.chainId,
+          to: intent.to,
+          data: intent.data,
+          value: intent.value,
+        }))
+        : undefined;
       return sendTransaction(config, {
         account: intent.account,
         chainId: intent.chainId,
         to: intent.to,
         data: intent.data,
         value: intent.value,
+        ...(gas === undefined ? {} : { gas }),
       });
     },
     async waitForReceipt(hash, chainId) {

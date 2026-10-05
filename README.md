@@ -169,6 +169,7 @@ Os [depósitos do OP Stack](https://docs.optimism.io/op-stack/bridging/deposit-f
 | --- | --- |
 | Cotação funciona, mas transação mostra configuração ausente | Endereços `NEXT_PUBLIC_*_ADDRESS` no arquivo `apps/web/.env.local`; reinicie o servidor. |
 | Carteira pede outra rede | Depósito usa Ethereum Sepolia `11155111`; registro e liquidação usam OP Sepolia `11155420`. |
+| Depósito L1 reverteu e consumiu gas | Consulte o recibo: um revert consome gas de teste, mas não conclui o depósito. Use a ação de verificação do depósito para o servidor registrar a falha antes de tentar novamente. O app estima o gas da bridge e adiciona margem; confirme o limite mostrado na carteira. A primeira tentativa pública e o diagnóstico estão em [docs/deployment-evidence.md](docs/deployment-evidence.md). |
 | Depósito L1 confirmado, ação L2 ainda bloqueada | Aguarde e atualize a verificação do crédito na OP Sepolia; são recibos diferentes. |
 | Liquidação informa saldo ou allowance insuficiente | Confirme mint de `MockUSD` ao pagador e aprovação exata para `PaymentRegistry`. |
 | Banco ou câmbio não aparece no explorador | Essas etapas são fictícias e existem apenas na aplicação. |
