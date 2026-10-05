@@ -18,10 +18,10 @@ O aplicativo demonstra um **cenário fictício** de pagamento B2B: calcula uma c
 | Código-fonte dos contratos | **Correspondência exata** de criação e execução no Sourcify; fontes importados e marcados como verificados no Blockscout |
 | Depósito Ethereum Sepolia → OP Sepolia | **Confirmado** por recibos públicos e `sourceHash` derivado do evento L1 |
 | Mint de `MockUSD` | **Confirmado** na OP Sepolia: `19,8 MockUSD` para a carteira pagadora |
-| Jornada manual de pagamento em `MockUSD` | **Pendente**; o depósito de ETH e o mint não executam a liquidação |
+| Jornada manual de pagamento em `MockUSD` | **Confirmada** na OP Sepolia; `19,8 MUSD` transferidos à carteira beneficiária, com recibo, evento e estado do contrato |
 | Checagem prévia automática do saldo de `MockUSD` | **Não implementada**; confira o saldo na OP Sepolia antes da jornada |
 
-Os testes de navegador exercitam a integração da interface com respostas controladas; a prova do depósito público está nos recibos abaixo. Eles não comprovam o pagamento em `MockUSD`. O formulário e a cotação podem ser executados localmente sem endereços de contratos; as ações de carteira exigem configuração e tokens de teste.
+Os testes de navegador exercitam a integração da interface com respostas controladas; a prova da jornada pública está nos recibos e leituras on-chain abaixo. O formulário e a cotação podem ser executados localmente sem endereços de contratos; as ações de carteira exigem configuração e tokens de teste.
 
 ### Contratos públicos para inspeção
 
@@ -32,7 +32,7 @@ Os contratos abaixo foram implantados em **5 de outubro de 2026**, na **OP Sepol
 | `MockUSD` | [`0x0202d5f1D5427BcA9d3aD546832B0D82fcd7aD92`](https://sourcify.dev/server/repo-ui/11155420/0x0202d5f1D5427BcA9d3aD546832B0D82fcd7aD92) | [`0x32ed67b1…eb515`](https://optimism-sepolia.blockscout.com/tx/0x32ed67b19cd3cc04c8e563af0fa89ea1ff6340f7906203fae916ffa3580eb515) | `49702386` |
 | `PaymentRegistry` | [`0xEB8642297c98206502e8fc05f659e5a2b12b051c`](https://sourcify.dev/server/repo-ui/11155420/0xEB8642297c98206502e8fc05f659e5a2b12b051c) | [`0x1cc0244f…96321`](https://optimism-sepolia.blockscout.com/tx/0x1cc0244fadb409b9b47cd3f6786f0acb3e7c5fc24a35780f7018f5c5c0596321) | `49702393` |
 
-O depósito de `0,0001 ETH` de teste da carteira pagadora foi confirmado na [Ethereum Sepolia, bloco `11849996`](https://sepolia.etherscan.io/tx/0x21de2edb71dc4bc35a7d512f1f84c9bbfbeddc03a36e9baa98c2a9e02d721427), e a transação derivada teve sucesso na [OP Sepolia, bloco `49707865`](https://sepolia-optimism.etherscan.io/tx/0x71e4f147ed1d0da1100109254a2751c78f614fc3df8cde2a064008aec46f5462). O `sourceHash` da L2 corresponde ao evento `TransactionDeposited` da L1. O [mint de `19,8 MockUSD` no bloco `49708788`](https://sepolia-optimism.etherscan.io/tx/0x3229002993252d68e0757ab9623180c279cce69d1eebaa139c7d83e3086c3804) foi confirmado para a carteira pagadora. **Pagamento liquidado e saldo de `MockUSD` da beneficiária ainda não foram comprovados.** Os hashes, a tentativa anterior revertida e o método de verificação estão em [docs/deployment-evidence.md](docs/deployment-evidence.md).
+O depósito de `0,0001 ETH` de teste da carteira pagadora foi confirmado na [Ethereum Sepolia, bloco `11849996`](https://sepolia.etherscan.io/tx/0x21de2edb71dc4bc35a7d512f1f84c9bbfbeddc03a36e9baa98c2a9e02d721427), e a transação derivada teve sucesso na [OP Sepolia, bloco `49707865`](https://sepolia-optimism.etherscan.io/tx/0x71e4f147ed1d0da1100109254a2751c78f614fc3df8cde2a064008aec46f5462). O [mint de `19,8 MockUSD` no bloco `49708788`](https://sepolia-optimism.etherscan.io/tx/0x3229002993252d68e0757ab9623180c279cce69d1eebaa139c7d83e3086c3804) abasteceu a carteira pagadora. Em um cenário posterior, outro [depósito L1](https://sepolia.etherscan.io/tx/0x979ed2fff46fea8d3b3a57425e0bb3f9648236eac981be32ef3eb89d5fb57636) foi vinculado ao [crédito L2](https://sepolia-optimism.etherscan.io/tx/0x1426dafe7bc7b5092a6c75752bcb441c62deb369af6b511727c15d9d0d58e830); a [liquidação no bloco `49712036`](https://sepolia-optimism.etherscan.io/tx/0x5b9b16fadd4d3bebc4accb354be3545a386a572d72c8803559896122b71e2d21) transferiu os `19,8 MUSD` para `0xa84dDfBFDB0b2dD8f15284E8511C32be936ffC37`. A leitura pública atual do token retornou `0 MUSD` para o pagador e `19,8 MUSD` para a beneficiária. Os hashes, a tentativa anterior revertida e o método de verificação estão em [docs/deployment-evidence.md](docs/deployment-evidence.md).
 
 ## O que o MVP implementa
 
@@ -50,6 +50,8 @@ O depósito de `0,0001 ETH` de teste da carteira pagadora foi confirmado na [Eth
 | OP Sepolia | Crédito do depósito e liquidação de `MockUSD` | `11155420` |
 
 `MockUSD` é um ERC-20 de demonstração com seis casas decimais. **Não é USDC, dólar ou stablecoin e não possui valor monetário.** O emissor de teste precisa distribuir o token à carteira pagadora após um eventual deploy. O aplicativo não faz mint automático.
+
+**Para que servem ETH e MUSD nesta demonstração:** o ETH de teste mostra o depósito da L1 para a L2 e pode pagar gas na OP Sepolia; ele não é trocado por MUSD. O MUSD é emitido separadamente na OP Sepolia e é o ativo fictício efetivamente transferido da pagadora à beneficiária. Depois do recebimento, ele fica na carteira beneficiária e pode ser visto ou transferido como token de teste, mas o MVP não oferece resgate, conversão em moeda local nem payout bancário.
 
 ## Como as partes se conectam
 
@@ -126,7 +128,9 @@ No [app local](http://127.0.0.1:3000), siga esta sequência. Revise sempre a red
 1. Clique em **Conectar carteira**. Informe a conta conectada em **Carteira pagadora de teste**, outra conta em **Carteira beneficiária de teste** e, por exemplo, `100,00` no valor fictício em BRL. Clique em **Gerar cotação simulada** e **Aprovar cenário fictício**.
 2. Na **Ethereum Sepolia (`11155111`)**, clique em **Depositar ETH de teste** e confirme `0,0001 ETH` mais gas na carteira. Guarde o hash L1. Aguarde o recibo L1 e use **Verificar crédito na OP Sepolia** até o backend confirmar a execução correspondente na L2. Não envie um segundo depósito enquanto o primeiro estiver pendente.
 3. Na **OP Sepolia (`11155420`)**, siga as ações exibidas: **Criar operação na OP Sepolia**, **Aprovar operação fictícia**, **Aprovar valor exato de MockUSD** e **Liquidar MockUSD de teste**. Cada escrita exige confirmação explícita na carteira e depois é conferida pelo backend.
-4. Após a liquidação confirmada, clique em **Exibir payout local simulado**. Esse último estado não representa conversão ou transferência bancária real.
+4. Após a liquidação confirmada, clique em **Exibir payout local simulado**. O card de conclusão aparece logo abaixo da revisão e mostra o valor enviado à beneficiária, o contrato do token e o link da transferência. Esse último estado não representa conversão ou transferência bancária real.
+
+Para ver o recebimento na MetaMask, selecione a **carteira beneficiária** na rede **OP Sepolia (`11155420`)**. Em **Gerenciar tokens → Adicionar token personalizado**, informe o contrato `0x0202d5f1D5427BcA9d3aD546832B0D82fcd7aD92`, símbolo `MUSD` e `6` decimais. Expanda **Tokens com saldo baixo**, se necessário. O endereço da conta selecionada deve corresponder exatamente ao beneficiário do cenário; adicionar o token à carteira pagadora não mostrará o saldo da beneficiária. Esta importação só muda a exibição na MetaMask; a transferência já está registrada na rede.
 
 Guarde o **ID do cenário**. Após gerar a cotação, o app coloca `?scenario=<ID>` na URL e recupera o cenário do SQLite ao abrir ou recarregar esse link. Para retomar um cenário criado antes dessa melhoria, abra `http://127.0.0.1:3000/?scenario=<ID_REAL>` com o ID exibido na interface ou registrado no banco. Isso recupera o estado do cenário, mas não assina transações automaticamente. Em **Evidências on-chain do cenário**, copie os hashes, chain IDs, blocos, status e links dos exploradores. Para comprovar a demonstração, confira no explorador o depósito L1, o crédito L2 vinculado a ele, o mint, os eventos `PaymentCreated`, `PaymentApproved` e `PaymentSettled`, a aprovação exata do token e o saldo final de `MockUSD` da beneficiária. Registre somente o que foi confirmado publicamente em [docs/deployment-evidence.md](docs/deployment-evidence.md) e atualize a tabela de estado deste README. O depósito L1, por si só, não comprova o crédito L2. Os [depósitos do OP Stack](https://docs.optimism.io/op-stack/bridging/deposit-flow) explicam essa distinção.
 
@@ -190,7 +194,7 @@ Os [depósitos do OP Stack](https://docs.optimism.io/op-stack/bridging/deposit-f
 - O contrato não faz swap, conversão ou pagamento internacional. Ele registra e transfere o token de teste entre carteiras na OP Sepolia.
 - O projeto usa a rede Optimism; não opera um sequencer, batcher nem constrói um rollup próprio.
 
-A lista detalhada do que entra e do que fica fora está em [docs/mvp-scope.md](docs/mvp-scope.md). A arquitetura e os estados estão em [docs/design.md](docs/design.md), a interface em [docs/frontend.md](docs/frontend.md) e as tarefas e pendências em [docs/implementation-plan.md](docs/implementation-plan.md). [docs/deployment-evidence.md](docs/deployment-evidence.md) separa o deploy e o depósito confirmados das etapas de pagamento ainda pendentes.
+A lista detalhada do que entra e do que fica fora está em [docs/mvp-scope.md](docs/mvp-scope.md). A arquitetura e os estados estão em [docs/design.md](docs/design.md), a interface em [docs/frontend.md](docs/frontend.md) e as tarefas e pendências em [docs/implementation-plan.md](docs/implementation-plan.md). [docs/deployment-evidence.md](docs/deployment-evidence.md) documenta a jornada pública confirmada e separa o payout bancário simulado.
 
 ## Evolução para produção — conhecimento arquitetural, fora do MVP
 

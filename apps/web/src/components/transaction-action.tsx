@@ -129,7 +129,8 @@ export function TransactionAction({
   onSwitchChain,
 }: TransactionActionProps) {
   const requiredChainId = action.requiredChainId;
-  const wrongNetwork = requiredChainId !== undefined && activeChainId !== requiredChainId;
+  const readOnlyAction = ["refresh-deposit", "refresh-transaction", "refresh-settlement", "simulate-payout"].includes(action.type);
+  const wrongNetwork = !readOnlyAction && requiredChainId !== undefined && activeChainId !== requiredChainId;
   const busy = BUSY_STATES.has(actionState.status);
   const message = statusMessage(actionState);
   const isError = [
@@ -179,7 +180,17 @@ export function TransactionAction({
           disabled={!action.enabled || !contracts || busy}
           onClick={onSubmit}
         >
-          {actionState.status === "submitted" ? "Transação enviada" : busy ? "Ação em andamento" : "Revisar e abrir a carteira"}
+          {actionState.status === "submitted"
+            ? "Transação enviada"
+            : busy
+              ? "Ação em andamento"
+              : action.type === "refresh-deposit"
+                ? "Verificar crédito sem abrir a carteira"
+                : action.type === "refresh-transaction" || action.type === "refresh-settlement"
+                  ? "Atualizar confirmação sem abrir a carteira"
+                  : action.type === "simulate-payout"
+                    ? "Exibir resultado simulado"
+                    : "Revisar e abrir a carteira"}
         </button>
       )}
 

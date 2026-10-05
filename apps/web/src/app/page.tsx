@@ -13,6 +13,7 @@ import { usePaymentFlow } from "../features/payment/use-payment-flow";
 import {
   buildConfirmationSummary,
   deserializeScenario,
+  formatAtomicMockUsd,
   TESTNET_WARNING,
 } from "../features/payment/ui-model";
 import { getPaymentContracts } from "../lib/contracts";
@@ -25,6 +26,9 @@ export default function PaymentDemoPage() {
   const contracts = useMemo(() => getPaymentContracts(), []);
   const paymentFlow = usePaymentFlow(scenario, contracts);
   const action = paymentFlow.actions[0] ?? null;
+  const settlementProof = scenario?.transactions.find((transaction) =>
+    transaction.stage === "payment-settle" && transaction.status === "confirmed"
+  );
 
   useEffect(() => {
     const id = new URL(window.location.href).searchParams.get("scenario");
@@ -177,6 +181,27 @@ export default function PaymentDemoPage() {
               </div>
             ) : null}
 
+            <section className="confirmation-summary" aria-labelledby="confirmation-heading">
+              <div className="section-heading compact">
+                <span className="eyebrow">
+                  {scenario.stage === "payout-simulated" ? "Resumo da operação" : "Antes da assinatura"}
+                </span>
+                <h2 id="confirmation-heading">
+                  {scenario.stage === "payout-simulated"
+                    ? "Endereço, rede e valor da operação concluída"
+                    : "Revise endereço, rede e valor completos"}
+                </h2>
+              </div>
+              <dl>
+                {buildConfirmationSummary(scenario).map((item) => (
+                  <div key={item.label}>
+                    <dt>{item.label}</dt>
+                    <dd>{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+
             {action && action.type !== "approve-commercial" && action.type !== "none" ? (
               <TransactionAction
                 action={action}
@@ -190,30 +215,35 @@ export default function PaymentDemoPage() {
             ) : null}
 
             {scenario.stage === "payout-simulated" ? (
-              <section className="panel" aria-labelledby="completion-heading" role="status">
+              <section className="panel completion-card" aria-labelledby="completion-heading" role="status">
                 <span className="eyebrow">Cenário concluído</span>
-                <h2 id="completion-heading">Demonstração concluída</h2>
+                <h2 id="completion-heading">MockUSD entregue à carteira beneficiária</h2>
                 <p>
-                  A liquidação de MockUSD foi confirmada na OP Sepolia. A conversão e o pagamento
-                  bancário ao fornecedor foram apenas simulados pela aplicação.
+                  A operação transferiu {formatAtomicMockUsd(scenario.quote.mockUsdAmount)} MockUSD
+                  de teste da carteira pagadora para <code>{scenario.beneficiary}</code> na OP Sepolia.
                 </p>
+                <p>
+                  O depósito de ETH entre Sepolia e OP Sepolia demonstrou a ponte L1 → L2. Ele não
+                  criou nem converteu MockUSD. O token foi emitido separadamente na OP Sepolia para
+                  representar o pagamento fictício.
+                </p>
+                <p>
+                  A beneficiária pode ver o token na carteira ao adicionar o contrato MockUSD
+                  {contracts ? <> <code>{contracts.mockUsd}</code></> : null} na OP Sepolia. Não há
+                  resgate, câmbio ou envio bancário neste MVP: a etapa de pagamento local foi
+                  apenas simulada.
+                </p>
+                {settlementProof ? (
+                  <a
+                    href={`https://sepolia-optimism.etherscan.io/tx/${settlementProof.hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Ver a transferência de MockUSD no explorador ↗
+                  </a>
+                ) : null}
               </section>
             ) : null}
-
-            <section className="confirmation-summary" aria-labelledby="confirmation-heading">
-              <div className="section-heading compact">
-                <span className="eyebrow">Antes da assinatura</span>
-                <h2 id="confirmation-heading">Revise endereço, rede e valor completos</h2>
-              </div>
-              <dl>
-                {buildConfirmationSummary(scenario).map((item) => (
-                  <div key={item.label}>
-                    <dt>{item.label}</dt>
-                    <dd>{item.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
 
             <ProofCards scenario={scenario} />
           </div>

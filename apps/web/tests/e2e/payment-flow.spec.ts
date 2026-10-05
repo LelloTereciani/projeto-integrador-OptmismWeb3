@@ -358,9 +358,10 @@ test("completes the mocked payment journey only after wallet and server evidence
   await expect(page.getByText("Crédito confirmado na L2")).toBeVisible();
   await expect(page.getByText("Confirmando")).toBeVisible();
 
-  await page.getByRole("button", { name: "Trocar para OP Sepolia" }).click();
-  await page.getByRole("button", { name: "Revisar e abrir a carteira" }).click();
+  await page.getByRole("button", { name: "Verificar crédito sem abrir a carteira" }).click();
   await expect(page.getByRole("heading", { name: "Criar operação na OP Sepolia" })).toBeVisible();
+  await expect(page.locator("section.confirmation-summary + section.action-preview")).toBeVisible();
+  await page.getByRole("button", { name: "Trocar para OP Sepolia" }).click();
 
   await page.getByRole("button", { name: "Revisar e abrir a carteira" }).click();
   await expect(page.getByRole("heading", { name: "Aprovar operação fictícia" })).toBeVisible();
@@ -393,9 +394,17 @@ test("completes the mocked payment journey only after wallet and server evidence
   await expect(page.getByRole("heading", { name: "Liquidar MockUSD de teste" })).toBeVisible();
   await page.getByRole("button", { name: "Revisar e abrir a carteira" }).click();
   await expect(page.getByRole("heading", { name: "Exibir payout local simulado" })).toBeVisible();
-  await page.getByRole("button", { name: "Revisar e abrir a carteira" }).click();
+  await page.getByRole("button", { name: "Exibir resultado simulado" }).click();
 
-  await expect(page.getByText("Demonstração concluída")).toBeVisible();
+  const completion = page.locator("section.confirmation-summary + section.completion-card");
+  await expect(completion.getByRole("heading", { name: "MockUSD entregue à carteira beneficiária" })).toBeVisible();
+  await expect(completion).toContainText("19.800000 MockUSD");
+  await expect(completion).toContainText(BENEFICIARY);
+  await expect(completion).toContainText("Ele não criou nem converteu MockUSD");
+  await expect(completion).toContainText("Não há resgate, câmbio ou envio bancário neste MVP");
+  await expect(completion).toContainText(MOCK_USD);
+  await expect(completion.getByRole("link", { name: "Ver a transferência de MockUSD no explorador" }))
+    .toHaveAttribute("href", `https://sepolia-optimism.etherscan.io/tx/${TRANSACTION_HASHES[4]}`);
   await expect(page.getByText("Liquidação confirmada na L2")).toBeVisible();
   await expect(page.getByText("Payout local simulado")).toBeVisible();
 });

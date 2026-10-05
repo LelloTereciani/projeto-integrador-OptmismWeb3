@@ -1,6 +1,6 @@
 # Orquestrador de pagamentos internacionais para PMEs — design do MVP
 
-**Status:** implementação local concluída; deploy e validação pública pendentes
+**Status:** implementação local, deploy dos contratos e uma jornada pública L1 → L2 → liquidação de MockUSD confirmados em 2026-10-05; payout bancário apenas simulado
 
 ## 1. Objetivo e limites
 
