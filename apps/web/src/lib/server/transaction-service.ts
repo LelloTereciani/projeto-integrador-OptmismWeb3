@@ -24,6 +24,8 @@ export interface PaymentChainVerifier {
   verifyL2PaymentEvent(hash: Hash, expected: { paymentId: Hash; payer: Address; beneficiary: Address; amount: bigint }): Promise<VerificationResult>;
   readRegistryPayment(paymentId: Hash): Promise<RegistryPayment>;
   readAllowance(owner: Address, spender: Address): Promise<bigint>;
+  readTokenBalance(owner: Address): Promise<bigint>;
+  readEthBalance(owner: Address): Promise<bigint>;
   registryAddress: Address;
 }
 
@@ -63,6 +65,31 @@ export class TransactionService {
     private readonly verifier: PaymentChainVerifier,
   ) {}
 
+  async useExistingL2Balance(id: string): Promise<PaymentScenario> {
+    const scenario = this.payments.getScenario(id);
+    if (scenario.stage !== "commercially-approved") {
+      throw new Error(`Cannot use existing L2 balance while scenario is ${scenario.stage}`);
+    }
+    const [tokenBalance, ethBalance] = await Promise.all([
+      this.verifier.readTokenBalance(scenario.payer),
+      this.verifier.readEthBalance(scenario.payer),
+    ]);
+    if (tokenBalance < scenario.quote.mockUsdAmount) {
+      throw new Error("Insufficient MockUSD balance on OP Sepolia for this quote");
+    }
+    if (ethBalance <= 0n) {
+      throw new Error("Insufficient OP Sepolia ETH for transaction gas");
+    }
+    const changed = this.database.orm.update(paymentScenarios)
+      .set({ stage: "l2-ready", updatedAt: new Date().toISOString() })
+      .where(and(eq(paymentScenarios.id, id), eq(paymentScenarios.stage, "commercially-approved")))
+      .run();
+    if (changed.changes !== 1) {
+      throw new Error("Cannot use existing L2 balance after another funding action started");
+    }
+    return this.payments.getScenario(id);
+  }
+
   recordTransaction(id: string, input: { stage: TransactionStage; chainId: number; hash: string }): PaymentScenario {
     const scenario = this.payments.getScenario(id);
     if (input.stage === "l2-deposit-credit" || !(input.stage in REQUIRED_STAGE)) {
@@ -77,7 +104,7 @@ export class TransactionService {
       .where(and(eq(paymentTransactions.scenarioId, id), eq(paymentTransactions.stage, stage)))
       .orderBy(desc(paymentTransactions.id)).get();
     if (previous && previous.transactionHash.toLowerCase() === input.hash.toLowerCase()) return scenario;
-    if (scenario.stage !== REQUIRED_STAGE[stage]) {
+    if (scenario.stage !== REQUIRED_STAGE[stage] && !(stage === "payment-create" && scenario.stage === "l2-ready")) {
       throw new Error(`Cannot submit ${stage} while scenario is ${scenario.stage}`);
     }
     if (previous && previous.status !== "reverted") {
@@ -208,7 +235,7 @@ export class TransactionService {
       return this.payments.getScenario(id);
     }
     this.setTransaction(transaction.id, result.status, result.blockNumber);
-    if (result.status === "reverted") this.setStage(id, REQUIRED_STAGE[stage]);
+    if (result.status === "reverted" && stage !== "payment-create") this.setStage(id, REQUIRED_STAGE[stage]);
     return this.payments.getScenario(id);
   }
 

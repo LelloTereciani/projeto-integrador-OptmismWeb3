@@ -20,5 +20,14 @@ export function errorResponse(error: unknown): Response {
   if (error instanceof Error && /Cannot submit|already has|already commercially approved|Only a confirmed|No submitted/.test(error.message)) {
     return scenarioResponse({ error: "A etapa não está disponível no estado atual do cenário." }, 409);
   }
+  if (error instanceof Error && error.message.startsWith("Cannot use existing L2 balance")) {
+    return scenarioResponse({ error: "A opção de saldo L2 não está disponível nesta etapa." }, 409);
+  }
+  if (error instanceof Error && error.message.startsWith("Insufficient MockUSD balance")) {
+    return scenarioResponse({ error: "Saldo de MockUSD insuficiente na carteira pagadora na OP Sepolia para esta cotação." }, 409);
+  }
+  if (error instanceof Error && error.message.startsWith("Insufficient OP Sepolia ETH")) {
+    return scenarioResponse({ error: "A carteira pagadora precisa de ETH na OP Sepolia para pagar o gas." }, 409);
+  }
   return scenarioResponse({ error: "Não foi possível concluir a operação. Tente novamente." }, 500);
 }

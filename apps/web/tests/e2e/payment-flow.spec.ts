@@ -18,6 +18,7 @@ type PaymentStage =
   | "l1-submitted"
   | "l2-credit-pending"
   | "l2-credited"
+  | "l2-ready"
   | "created"
   | "approved"
   | "token-approved"
@@ -106,6 +107,8 @@ async function installInjectedWallet(page: Page) {
               return "0x30d40";
             case "wallet_getCapabilities":
               return {};
+            case "wallet_watchAsset":
+              return true;
             default:
               throw new Error(`Unexpected injected wallet method: ${input.method}`);
           }
@@ -125,14 +128,17 @@ async function installInjectedWallet(page: Page) {
   );
 }
 
-function rpcResult(method: string, params: unknown[] | undefined): unknown {
+function rpcResult(method: string, params: unknown[] | undefined, isL1: boolean): unknown {
   switch (method) {
     case "eth_call": {
       const call = params?.[0] as { data?: string } | undefined;
+      if (call?.data?.startsWith("0x70a08231")) {
+        return encodeAbiParameters([{ type: "uint256" }], [19_800_000n]);
+      }
       if (call?.data?.startsWith("0x82ad56cb")) {
         return encodeAbiParameters(
           [{ type: "tuple[]", components: [{ name: "success", type: "bool" }, { name: "returnData", type: "bytes" }] }],
-          [[{ success: true, returnData: encodeAbiParameters([{ type: "uint256" }], [1_000_000_000_000_000_000n]) }]],
+          [[{ success: true, returnData: encodeAbiParameters([{ type: "uint256" }], [isL1 ? 1_000_000_000_000_000_000n : 19_800_000n]) }]],
         );
       }
       return call?.data?.startsWith("0x095ea7b3")
@@ -182,7 +188,7 @@ async function installMockRpc(page: Page) {
       const response = requests.map((request) => ({
         jsonrpc: "2.0",
         id: request.id,
-        result: rpcResult(request.method, request.params),
+        result: rpcResult(request.method, request.params, endpoint.includes("11155111")),
       }));
       await route.fulfill({
         contentType: "application/json",
@@ -237,6 +243,12 @@ async function installMockApi(page: Page, initialStage: PaymentStage = "quoted")
     const path = url.pathname;
 
     if (path === "/api/payments" && route.request().method() === "POST") {
+      const payload = route.request().postDataJSON() as { brlAmountCents?: string };
+      if (payload.brlAmountCents === "2526") {
+        scenario.quote = { ...scenario.quote, brlAmount: "25.26", mockUsdAmount: "5000000", feeAmount: "0.26" };
+      } else if (payload.brlAmountCents === "12000") {
+        scenario.quote = { ...scenario.quote, brlAmount: "120.00", mockUsdAmount: "23760000", feeAmount: "1.20" };
+      }
       await fulfillScenario(route, scenario, 201);
       return;
     }
@@ -249,6 +261,16 @@ async function installMockApi(page: Page, initialStage: PaymentStage = "quoted")
     if (path.endsWith("/commercial-approval")) {
       scenario.stage = "commercially-approved";
       scenario.commerciallyApprovedAt = "2026-10-04T12:01:00.000Z";
+      await fulfillScenario(route, scenario);
+      return;
+    }
+
+    if (path.endsWith("/use-l2-balance")) {
+      if (BigInt(scenario.quote.mockUsdAmount) > 19_800_000n) {
+        await route.fulfill({ status: 409, json: { error: "Saldo de MockUSD insuficiente na carteira pagadora na OP Sepolia para esta cotação." } });
+        return;
+      }
+      scenario.stage = "l2-ready";
       await fulfillScenario(route, scenario);
       return;
     }
@@ -344,6 +366,7 @@ test("completes the mocked payment journey only after wallet and server evidence
 
   await page.getByRole("button", { name: "Conectar carteira" }).click();
   await expect(page.getByText("0x1000…0001")).toBeVisible();
+  await page.getByRole("button", { name: "Demonstrar depósito L1 → L2 (opcional)" }).click();
   await expect(page.getByRole("button", { name: "Trocar para Ethereum Sepolia" })).toBeVisible();
   await page.getByRole("button", { name: "Trocar para Ethereum Sepolia" }).click();
 
@@ -407,6 +430,71 @@ test("completes the mocked payment journey only after wallet and server evidence
     .toHaveAttribute("href", `https://sepolia-optimism.etherscan.io/tx/${TRANSACTION_HASHES[4]}`);
   await expect(page.getByText("Liquidação confirmada na L2")).toBeVisible();
   await expect(page.getByText("Payout local simulado")).toBeVisible();
+});
+
+test("pays 5 MUSD with existing L2 funds and skips the optional L1 deposit", async ({ page }) => {
+  await installInjectedWallet(page);
+  await installMockRpc(page);
+  await installMockApi(page);
+
+  await page.goto("/");
+  await page.getByLabel("Carteira pagadora de teste").fill(PAYER);
+  await page.getByLabel("Carteira beneficiária de teste").fill(BENEFICIARY);
+  await page.getByLabel("Valor fictício em BRL").fill("25,26");
+  await page.getByRole("button", { name: "Gerar cotação simulada" }).click();
+  await expect(page.getByText("5.000000 MockUSD", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Aprovar cenário fictício" }).click();
+  await page.getByRole("button", { name: "Conferir saldo sem abrir a carteira" }).click();
+  await expect(page.getByRole("heading", { name: "Criar operação na OP Sepolia" })).toBeVisible();
+  await page.getByRole("button", { name: "Conectar carteira" }).click();
+
+  await page.getByRole("button", { name: "Revisar e abrir a carteira" }).click();
+  await expect(page.getByText("A solicitação foi rejeitada na carteira.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Revisar e abrir a carteira" }).click();
+  await expect(page.getByRole("heading", { name: "Aprovar operação fictícia" })).toBeVisible();
+  await page.getByRole("button", { name: "Revisar e abrir a carteira" }).click();
+  await page.getByRole("button", { name: "Revisar e abrir a carteira" }).click();
+  await page.getByRole("button", { name: "Revisar e abrir a carteira" }).click();
+  await expect(page.getByRole("heading", { name: "Exibir payout local simulado" })).toBeVisible();
+  await page.getByRole("button", { name: "Exibir resultado simulado" }).click();
+  await expect(page.getByRole("heading", { name: "MockUSD entregue à carteira beneficiária" })).toBeVisible();
+
+  const walletTransactions = await page.evaluate(() =>
+    (window as typeof window & { __walletRequests: Array<{ method: string; params?: unknown }> })
+      .__walletRequests.filter((request) => request.method === "eth_sendTransaction"),
+  );
+  expect(walletTransactions).toHaveLength(5);
+  expect(walletTransactions.every((request) =>
+    (request.params as Array<{ to: string }>)[0].to.toLowerCase() !== "0xfbb0621e0b23b5478b630bd55a5f21f67730b0f1"
+  )).toBe(true);
+  await page.getByRole("button", { name: "Mostrar MUSD na MetaMask" }).click();
+  await expect(page.getByText(/MUSD adicionado à MetaMask/)).toBeVisible();
+  await page.getByRole("button", { name: "Criar pagamento inverso com as carteiras trocadas" }).click();
+  await expect(page.getByLabel("Carteira pagadora de teste")).toHaveValue(BENEFICIARY);
+  await expect(page.getByLabel("Carteira beneficiária de teste")).toHaveValue(PAYER);
+  await expect(page.getByLabel("Valor fictício em BRL")).toHaveValue("25,26");
+});
+
+test("shows the required and available MUSD for an amount above the payer balance", async ({ page }) => {
+  await installInjectedWallet(page);
+  await installMockRpc(page);
+  await installMockApi(page);
+
+  await page.goto("/");
+  await page.getByLabel("Carteira pagadora de teste").fill(PAYER);
+  await page.getByLabel("Carteira beneficiária de teste").fill(BENEFICIARY);
+  await page.getByLabel("Valor fictício em BRL").fill("120,00");
+  await page.getByRole("button", { name: "Gerar cotação simulada" }).click();
+  await expect(page.getByText("Saldo de MUSD insuficiente para esta cotação.")).toBeVisible();
+  await expect(page.getByText(/Disponível na pagadora.*19\.800000 MUSD.*Necessário.*23\.760000 MUSD/)).toBeVisible();
+  await page.getByRole("button", { name: "Aprovar cenário fictício" }).click();
+  await page.getByRole("button", { name: "Conferir saldo sem abrir a carteira" }).click();
+  await expect(page.locator("section.action-preview").getByRole("alert")).toContainText("Saldo de MockUSD insuficiente");
+  const walletTransactions = await page.evaluate(() =>
+    (window as typeof window & { __walletRequests: Array<{ method: string }> })
+      .__walletRequests.filter((request) => request.method === "eth_sendTransaction"),
+  );
+  expect(walletTransactions).toHaveLength(0);
 });
 
 test("restores the saved scenario from its URL without starting another deposit", async ({ page }) => {

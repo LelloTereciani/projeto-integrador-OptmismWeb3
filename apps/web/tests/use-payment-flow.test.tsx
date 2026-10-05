@@ -63,6 +63,7 @@ function dependencies(overrides: Partial<PaymentFlowDependencies> = {}): Mutable
   return {
     getWallet: vi.fn(async () => wallet),
     getBalance: vi.fn(async () => 1_000_000_000_000_000_000n),
+    getTokenBalance: vi.fn(async () => 19_800_000n),
     simulate: vi.fn(async (intent) => ({ fingerprint: intent.fingerprint })),
     send: vi.fn(async () => HASH),
     waitForReceipt: vi.fn(async (): Promise<ReceiptResult> => ({ status: "success", hash: HASH, blockNumber: 123n })),
@@ -181,6 +182,19 @@ describe("payment wallet controller", () => {
     expect(result.state).toMatchObject({ status: "insufficient-funds" });
     expect(deps.simulate).not.toHaveBeenCalled();
   });
+
+  it.each(["deposit-l1", "create-payment", "settle-payment"] as const)(
+    "shows insufficient MockUSD before opening the wallet for %s",
+    async (action) => {
+      const deps = dependencies({ getTokenBalance: vi.fn(async () => 5_000_000n) });
+      if (action === "deposit-l1") deps.setWallet({ address: PAYER, chainId: 11155111 });
+      const controller = createPaymentFlowController(deps, contracts);
+      const result = await controller.submit(action, scenario("commercially-approved"));
+      expect(result.state).toMatchObject({ status: "insufficient-funds", error: expect.stringMatching(/MockUSD/) });
+      expect(deps.simulate).not.toHaveBeenCalled();
+      expect(deps.send).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     ["account", { address: OTHER_ACCOUNT, chainId: 11155420 }],

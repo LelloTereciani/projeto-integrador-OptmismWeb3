@@ -10,7 +10,7 @@ O MVP suporta somente uma carteira injetada no navegador, como MetaMask. Isso ev
 
 | Etapa | Rede exigida | Chain ID |
 | --- | --- | --- |
-| Depósito | Ethereum Sepolia | `11155111` |
+| Depósito opcional | Ethereum Sepolia | `11155111` |
 | Registro, aprovação e liquidação | OP Sepolia | `11155420` |
 
 A configuração de carteira terá allowlist exclusiva dessas duas redes. A aplicação não pede conexão automática, não troca de rede silenciosamente e não abre uma solicitação de assinatura sem clique explícito.
@@ -19,25 +19,27 @@ A configuração de carteira terá allowlist exclusiva dessas duas redes. A apli
 
 1. **Cabeçalho de ambiente:** aviso permanente `Ambiente de demonstração — sem dinheiro real`, rede atual, endereço abreviado e botão de conexão.
 2. **Cenário de fatura fictícia:** formulário mínimo com valor em BRL e endereços EVM de teste do pagador e beneficiário. Não coleta número, texto, arquivo nem dados reais de fatura. O backend calcula a cotação e a tarifa determinísticas antes da aprovação comercial.
-3. **Linha de progresso:** mostra estados de negócio, L1, L2 e payout fictício sem misturá-los.
+3. **Linha de progresso:** mostra estados de negócio, saldo L2 existente ou L1 → L2 opcional e payout fictício sem misturá-los.
 4. **Ações de carteira:** cada ação mostra rede, contrato/bridge de destino, token, endereço relevante e valor exato antes de abrir a carteira.
 5. **Revisão e próxima ação:** a revisão dos endereços, rede e valor aparece antes do botão que pode abrir a carteira. Verificações de recibo e o payout simulado são identificados como ações sem assinatura.
-6. **Resultado:** após a liquidação, um card logo abaixo da revisão informa valor recebido, beneficiário, contrato do token, link da transferência e os limites do payout simulado.
+6. **Resultado:** após a liquidação, um card logo abaixo da revisão informa valor recebido, beneficiário, contrato do token, saldos L2 de ambas as contas, link da transferência, opção de adicionar MUSD à MetaMask e os limites do payout simulado.
 7. **Provas técnicas:** cards para hash L1, hash/estado do crédito L2, transações de `PaymentRegistry`, evento `PaymentSettled`, chain ID e link de explorador.
 
 ## Sequência de ações de carteira
 
 | Ordem | Ação | Rede | Evidência exigida antes de avançar |
 | ---: | --- | --- | --- |
-| 1 | Depositar ETH de teste pelo Standard Bridge | Ethereum Sepolia | recibo L1 e status do depósito pendente |
-| 2 | Confirmar crédito do depósito | OP Sepolia | evidência de relay/crédito L2 |
-| 3 | Criar a operação no `PaymentRegistry` | OP Sepolia | recibo com `PaymentCreated` |
-| 4 | Aprovar a operação no `PaymentRegistry` | OP Sepolia | recibo com `PaymentApproved` |
-| 5 | Aprovar exatamente o valor de `MockUSD` para o `PaymentRegistry` | OP Sepolia | allowance lida novamente na cadeia |
-| 6 | Liquidar a operação | OP Sepolia | recibo com `PaymentSettled` e estado `settled` relido do registro; uma jornada pública confirmou `19,8 MUSD` no saldo da beneficiária |
-| 7 | Exibir payout local simulado | Aplicação | etapa 6 confirmada |
+| 1 | Conferir saldo de MUSD e ETH já disponíveis | OP Sepolia | leituras `balanceOf` e ETH; sem assinatura |
+| 1a (opcional) | Depositar ETH de teste pelo Standard Bridge e confirmar crédito | Ethereum Sepolia → OP Sepolia | recibo L1 e evidência de relay/crédito L2 |
+| 2 | Criar a operação no `PaymentRegistry` | OP Sepolia | recibo com `PaymentCreated` |
+| 3 | Aprovar a operação no `PaymentRegistry` | OP Sepolia | recibo com `PaymentApproved` |
+| 4 | Aprovar exatamente o valor de `MockUSD` para o `PaymentRegistry` | OP Sepolia | allowance lida novamente na cadeia |
+| 5 | Liquidar a operação | OP Sepolia | recibo com `PaymentSettled` e estado `settled` relido do registro; uma jornada pública confirmou `19,8 MUSD` no saldo da beneficiária |
+| 6 | Exibir payout local simulado e ler saldos L2 | Aplicação | etapa 5 confirmada |
 
 Antes das ações que escrevem em contrato, o frontend valida conta, rede, destinatário, contrato, amount, calldata e estado atual. Para valores on-chain, usa `bigint` e conversão explícita de unidades; nunca `number` do JavaScript. A aprovação do ERC-20 será sempre pelo valor exato da operação, nunca ilimitada.
+
+A cotação de `R$ 25,26` resulta em `5,000000 MUSD` com taxa fixa fictícia de `R$ 5,0000` por token e tarifa de `1%` arredondada para cima. O app mostra saldo insuficiente quando o valor cotado ultrapassa o `balanceOf` da pagadora, inclusive antes do depósito opcional. Depois da liquidação, o botão de pagamento inverso preenche uma nova fatura com pagadora e beneficiária trocadas. A MetaMask precisa selecionar a conta beneficiária em OP Sepolia e acompanhar o token MUSD para mostrar o saldo daquela conta.
 
 ## Estados e falhas de UX
 

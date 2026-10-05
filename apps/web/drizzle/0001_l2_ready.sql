@@ -1,6 +1,7 @@
-PRAGMA foreign_keys = ON;
+PRAGMA foreign_keys = OFF;
+BEGIN TRANSACTION;
 
-CREATE TABLE IF NOT EXISTS payment_scenarios (
+CREATE TABLE payment_scenarios_new (
   id TEXT PRIMARY KEY NOT NULL,
   payment_id TEXT NOT NULL UNIQUE CHECK (
     substr(payment_id, 1, 2) = '0x'
@@ -48,36 +49,15 @@ CREATE TABLE IF NOT EXISTS payment_scenarios (
   commercially_approved_at TEXT
 ) STRICT;
 
-CREATE TABLE IF NOT EXISTS payment_transactions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  scenario_id TEXT NOT NULL REFERENCES payment_scenarios(id) ON DELETE CASCADE,
-  stage TEXT NOT NULL CHECK (stage IN (
-    'l1-deposit',
-    'l2-deposit-credit',
-    'payment-create',
-    'payment-approve',
-    'token-approve',
-    'payment-settle'
-  )),
-  chain_id INTEGER NOT NULL CHECK (chain_id IN (11155111, 11155420)),
-  transaction_hash TEXT NOT NULL CHECK (
-    substr(transaction_hash, 1, 2) = '0x'
-    AND length(transaction_hash) = 66
-    AND substr(transaction_hash, 3) NOT GLOB '*[^0-9A-Fa-f]*'
-  ),
-  status TEXT NOT NULL CHECK (status IN ('submitted', 'pending', 'confirmed', 'reverted', 'unavailable')),
-  block_number TEXT,
-  observed_at TEXT NOT NULL,
-  CHECK (
-    (stage = 'l1-deposit' AND chain_id = 11155111)
-    OR (stage <> 'l1-deposit' AND chain_id = 11155420)
-  ),
-  UNIQUE (scenario_id, stage, transaction_hash)
-) STRICT;
+INSERT INTO payment_scenarios_new
+SELECT id, payment_id, stage, payer_address, beneficiary_address,
+  brl_amount_cents, rate_bps, fee_bps, fee_amount_cents,
+  mock_usd_amount, terms_hash, fictional_metadata, created_at,
+  updated_at, commercially_approved_at
+FROM payment_scenarios;
 
-CREATE INDEX IF NOT EXISTS payment_transactions_scenario_id_index
-  ON payment_transactions (scenario_id, id);
+DROP TABLE payment_scenarios;
+ALTER TABLE payment_scenarios_new RENAME TO payment_scenarios;
 
-CREATE UNIQUE INDEX IF NOT EXISTS payment_transactions_l1_deposit_hash_unique
-  ON payment_transactions (transaction_hash)
-  WHERE stage = 'l1-deposit';
+COMMIT;
+PRAGMA foreign_keys = ON;

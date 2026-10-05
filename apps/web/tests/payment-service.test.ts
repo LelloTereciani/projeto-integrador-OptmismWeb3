@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+
+import BetterSqlite3 from "better-sqlite3";
 import { describe, expect, it } from "vitest";
 
 import { createPaymentDatabase } from "../src/lib/server/db";
@@ -17,6 +20,25 @@ function validInput() {
 }
 
 describe("payment persistence schema", () => {
+  it("upgrades an existing database without losing scenarios or transaction evidence", () => {
+    const client = new BetterSqlite3(":memory:");
+    const currentSchema = readFileSync(new URL("../drizzle/0000_initial.sql", import.meta.url), "utf8");
+    client.exec(currentSchema.replace("    'l2-ready',\n", ""));
+    const id = "legacy-scenario";
+    const hash = `0x${"a".repeat(64)}`;
+    client.prepare(`INSERT INTO payment_scenarios VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(id, hash, "commercially-approved", PAYER, BENEFICIARY, "2526", "50000", "100", "26", "5000000", hash, '{"scenarioType":"fictional-testnet"}', "2026-10-05", "2026-10-05", "2026-10-05");
+    client.prepare(`INSERT INTO payment_transactions (scenario_id, stage, chain_id, transaction_hash, status, observed_at) VALUES (?, ?, ?, ?, ?, ?)`)
+      .run(id, "payment-create", 11155420, hash, "confirmed", "2026-10-05");
+
+    client.exec(readFileSync(new URL("../drizzle/0001_l2_ready.sql", import.meta.url), "utf8"));
+    client.prepare("UPDATE payment_scenarios SET stage = 'l2-ready' WHERE id = ?").run(id);
+    expect(client.prepare("SELECT stage FROM payment_scenarios WHERE id = ?").get(id)).toEqual({ stage: "l2-ready" });
+    expect(client.prepare("SELECT scenario_id FROM payment_transactions WHERE scenario_id = ?").get(id)).toEqual({ scenario_id: id });
+    expect(client.pragma("foreign_key_check")).toEqual([]);
+    client.close();
+  });
+
   it("creates only the restricted payment persistence schema", () => {
     const database = createPaymentDatabase(":memory:");
 

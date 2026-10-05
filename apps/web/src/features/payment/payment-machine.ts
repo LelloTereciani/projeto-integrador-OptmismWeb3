@@ -28,11 +28,9 @@ const ACTIONS_BY_STAGE: Record<PaymentStage, ActionDefinition> = {
     reason: "A cotação simulada está pronta para aprovação comercial.",
   },
   "commercially-approved": {
-    type: "deposit-l1",
-    label: "Depositar ETH de teste",
-    reason: "O cenário está pronto para o depósito na Ethereum Sepolia.",
-    requiredChainId: 11155111,
-    requiresWallet: true,
+    type: "use-l2-balance",
+    label: "Conferir saldo na OP Sepolia",
+    reason: "Verifique se a pagadora já tem MockUSD para esta cotação e ETH para gas. Nenhuma assinatura é necessária nesta etapa.",
   },
   "l1-submitted": {
     type: "refresh-deposit",
@@ -50,6 +48,13 @@ const ACTIONS_BY_STAGE: Record<PaymentStage, ActionDefinition> = {
     type: "create-payment",
     label: "Criar operação na OP Sepolia",
     reason: "O crédito L2 foi confirmado pelo servidor.",
+    requiredChainId: 11155420,
+    requiresWallet: true,
+  },
+  "l2-ready": {
+    type: "create-payment",
+    label: "Criar operação na OP Sepolia",
+    reason: "Os saldos L2 existentes foram conferidos pelo servidor.",
     requiredChainId: 11155420,
     requiresWallet: true,
   },
@@ -137,8 +142,17 @@ export function shouldInvalidatePendingAction(
 export function getAllowedAction(
   scenario: PaymentScenario,
   wallet: WalletState,
+  useBridge = false,
 ): PaymentAction {
-  const definition = ACTIONS_BY_STAGE[scenario.stage];
+  const definition = scenario.stage === "commercially-approved" && useBridge
+    ? {
+        type: "deposit-l1" as const,
+        label: "Depositar ETH de teste",
+        reason: "Demonstre o depósito da Ethereum Sepolia para a OP Sepolia. O MUSD já precisa existir separadamente na OP Sepolia.",
+        requiredChainId: 11155111 as const,
+        requiresWallet: true,
+      }
+    : ACTIONS_BY_STAGE[scenario.stage];
   const activeTransaction = activeTransactionForAction(scenario, definition.type);
   if (activeTransaction) {
     return {

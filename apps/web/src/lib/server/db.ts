@@ -55,6 +55,15 @@ export function createPaymentDatabase(
   client.pragma("foreign_keys = ON");
   const migration = readFileSync(new URL("../../../drizzle/0000_initial.sql", import.meta.url), "utf8");
   client.exec(migration);
+  const storedSchema = client.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'payment_scenarios'")
+    .get() as { sql: string };
+  if (!storedSchema.sql.includes("'l2-ready'")) {
+    const upgrade = readFileSync(new URL("../../../drizzle/0001_l2_ready.sql", import.meta.url), "utf8");
+    client.exec(upgrade);
+    if ((client.pragma("foreign_key_check") as unknown[]).length > 0) {
+      throw new Error("Payment database migration left invalid foreign keys");
+    }
+  }
 
   return {
     client,

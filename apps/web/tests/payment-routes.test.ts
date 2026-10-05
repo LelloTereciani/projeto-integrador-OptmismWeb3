@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   recordTransaction: vi.fn(),
   verifyTransaction: vi.fn(),
   simulatePayout: vi.fn(),
+  useExistingL2Balance: vi.fn(),
 }));
 
 vi.mock("../src/lib/server/runtime", () => ({
@@ -20,6 +21,7 @@ vi.mock("../src/lib/server/runtime", () => ({
     recordTransaction: mocks.recordTransaction,
     verifyTransaction: mocks.verifyTransaction,
     simulatePayout: mocks.simulatePayout,
+    useExistingL2Balance: mocks.useExistingL2Balance,
   }),
 }));
 
@@ -29,6 +31,7 @@ import { POST as approveCommercial } from "../src/app/api/payments/[id]/commerci
 import { POST as recordTransaction } from "../src/app/api/payments/[id]/transactions/route";
 import { POST as verifyTransaction } from "../src/app/api/payments/[id]/transactions/[stage]/verify/route";
 import { POST as simulatePayout } from "../src/app/api/payments/[id]/simulate-payout/route";
+import { POST as useL2Balance } from "../src/app/api/payments/[id]/use-l2-balance/route";
 
 const PAYER = "0x1000000000000000000000000000000000000001";
 const BENEFICIARY = "0x2000000000000000000000000000000000000002";
@@ -51,6 +54,7 @@ beforeEach(() => {
   mocks.recordTransaction.mockReturnValue({ ...SCENARIO, stage: "l1-submitted" });
   mocks.verifyTransaction.mockResolvedValue({ ...SCENARIO, stage: "l2-credit-pending" });
   mocks.simulatePayout.mockReturnValue({ ...SCENARIO, stage: "payout-simulated" });
+  mocks.useExistingL2Balance.mockResolvedValue({ ...SCENARIO, stage: "l2-ready" });
 });
 
 describe("payment HTTP routes", () => {
@@ -96,6 +100,17 @@ describe("payment HTTP routes", () => {
     expect(await approved.json()).toMatchObject({ stage: "commercially-approved" });
     mocks.approveCommercial.mockImplementationOnce(() => { throw new Error("Payment scenario is already commercially approved or beyond: settled"); });
     expect((await approveCommercial(new Request("http://localhost", { method: "POST" }), idContext)).status).toBe(409);
+  });
+
+  it("checks existing OP Sepolia funds before opening wallet actions", async () => {
+    const ready = await useL2Balance(new Request("http://localhost", { method: "POST" }), idContext);
+    expect(ready.status).toBe(200);
+    expect(await ready.json()).toMatchObject({ stage: "l2-ready" });
+    expect(mocks.useExistingL2Balance).toHaveBeenCalledWith("demo-id");
+    mocks.useExistingL2Balance.mockRejectedValueOnce(new Error("Insufficient MockUSD balance on OP Sepolia for this quote"));
+    const shortage = await useL2Balance(new Request("http://localhost", { method: "POST" }), idContext);
+    expect(shortage.status).toBe(409);
+    expect(await shortage.json()).toMatchObject({ error: expect.stringMatching(/MockUSD insuficiente/) });
   });
 
   it("refuses fabricated stage, chain ID and hash before recording a transaction", async () => {

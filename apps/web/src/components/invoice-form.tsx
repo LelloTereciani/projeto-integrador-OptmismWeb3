@@ -12,6 +12,7 @@ import {
 
 interface InvoiceFormProps {
   onCreated(scenario: PaymentScenario): void;
+  initialDraft?: InvoiceDraft;
 }
 
 const EMPTY_DRAFT: InvoiceDraft = {
@@ -24,8 +25,8 @@ function isFieldError(value: ReturnType<typeof createInvoicePayload>): value is 
   return "field" in value;
 }
 
-export function InvoiceForm({ onCreated }: InvoiceFormProps) {
-  const [draft, setDraft] = useState<InvoiceDraft>(EMPTY_DRAFT);
+export function InvoiceForm({ onCreated, initialDraft = EMPTY_DRAFT }: InvoiceFormProps) {
+  const [draft, setDraft] = useState<InvoiceDraft>(initialDraft);
   const [fieldError, setFieldError] = useState<InvoiceFieldError | null>(null);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -169,7 +170,7 @@ export function InvoiceForm({ onCreated }: InvoiceFormProps) {
             />
           </div>
           <span className="field-hint" id="brl-amount-hint">
-            O servidor calcula taxa, tarifa e MockUSD com inteiros exatos.
+            O servidor calcula taxa, tarifa e MockUSD com inteiros exatos. Exemplo: R$ 25,26 resultam em 5,000000 MUSD de teste.
           </span>
           {fieldError?.field === "brlAmount" ? (
             <span className="field-error" id="brl-amount-error">

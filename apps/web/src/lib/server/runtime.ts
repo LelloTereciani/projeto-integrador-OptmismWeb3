@@ -32,6 +32,12 @@ const tokenReadAbi = [{
     { name: "spender", type: "address" },
   ],
   outputs: [{ name: "allowance", type: "uint256" }],
+}, {
+  type: "function",
+  name: "balanceOf",
+  stateMutability: "view",
+  inputs: [{ name: "owner", type: "address" }],
+  outputs: [{ name: "balance", type: "uint256" }],
 }] as const;
 
 export class TestnetConfigurationError extends Error {}
@@ -98,6 +104,13 @@ export function getTransactionService(): TransactionService {
       functionName: "allowance",
       args: [owner, spender],
     }),
+    readTokenBalance: (owner: Address) => l2Client.readContract({
+      address: mockUsdAddress,
+      abi: tokenReadAbi,
+      functionName: "balanceOf",
+      args: [owner],
+    }),
+    readEthBalance: (owner: Address) => l2Client.getBalance({ address: owner }),
   };
   transactionService = new TransactionService(database, paymentService, verifier);
   return transactionService;

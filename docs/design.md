@@ -27,7 +27,7 @@ O produto não é uma plataforma de remessas e não movimenta ativos, dados banc
 
 `SepoliaETH` e o ETH de teste na OP Sepolia representam saldos na mesma carteira em redes diferentes. O depósito reduz o saldo na L1 e credita o saldo na L2 após o relay. Isso é independente de `MockUSD` e não cria uma conversão de moeda.
 
-O `MockUSD` de teste precisa ser emitido pelo dono do contrato para a carteira pagadora antes da liquidação. O caminho recomendado de demonstração prepara e confere esse saldo antes de iniciar o cenário, quando já há ETH na OP Sepolia para o gas. O depósito L1 → L2 é uma etapa didática imposta pela sequência da interface; o contrato `PaymentRegistry` não exige esse depósito e não associa seu ETH ao token. A interface ainda não executa uma checagem prévia automática de `balanceOf`.
+O `MockUSD` de teste precisa ser emitido pelo dono do contrato para a carteira pagadora antes da liquidação. O caminho direto lê `balanceOf` e ETH da pagadora na OP Sepolia antes das assinaturas. O depósito L1 → L2 é uma etapa didática opcional; o contrato `PaymentRegistry` não exige esse depósito e não associa seu ETH ao token. A interface exibe o saldo de MUSD insuficiente para a cotação e também confere o saldo antes de qualquer depósito opcional, criação ou liquidação.
 
 ## 3. Escopo da demonstração
 
@@ -37,7 +37,7 @@ O `MockUSD` de teste precisa ser emitido pelo dono do contrato para a carteira p
 - Simulação determinística de taxa BRL/USD, tarifa e valor líquido em `MockUSD`.
 - Confirmação comercial explícita do pagador na interface.
 - Conexão de carteira e troca guiada entre Ethereum Sepolia e OP Sepolia.
-- Depósito real de uma quantidade pequena de ETH de teste da L1 para a L2.
+- Depósito opcional de uma quantidade pequena de ETH de teste da L1 para a L2.
 - Acompanhamento do depósito: enviado na L1, relay pendente e disponível na L2.
 - Aprovação ERC-20 e liquidação real de `MockUSD` na OP Sepolia.
 - Eventos, hashes, chain IDs, status e links aos exploradores das transações.
@@ -59,9 +59,9 @@ O `MockUSD` de teste precisa ser emitido pelo dono do contrato para a carteira p
 Rascunho
   → Cotado (simulação calculada no servidor)
   → Aprovado comercialmente
-  → Depósito L1 enviado
-  → Aguardando crédito na L2
-  → ETH disponível na L2
+  → Escolher saldo L2 existente ou depósito opcional
+     → [saldo existente] MUSD e ETH conferidos na OP Sepolia
+     → [bridge opcional] Depósito L1 enviado → Aguardando crédito → ETH disponível na L2
   → Operação criada no PaymentRegistry
   → Operação aprovada pelo pagador
   → Valor exato de MockUSD aprovado para o PaymentRegistry
@@ -70,12 +70,12 @@ Rascunho
   → Payout local simulado
 ```
 
-Os estados `Rascunho`, `Cotado`, `Aprovado comercialmente` e `Payout local simulado` são estados da aplicação. Os demais avanços dependem de evidência on-chain confirmada pelo backend.
+Os estados `Rascunho`, `Cotado`, `Aprovado comercialmente`, `Saldo L2 conferido` e `Payout local simulado` são estados da aplicação. A conferência do saldo L2 é uma leitura on-chain, sem transação nem assinatura. Os demais avanços dependem de evidência on-chain confirmada pelo backend.
 
 A tela apresenta os estágios em três blocos sem misturá-los:
 
-1. **L1 — Ethereum Sepolia:** hash do depósito e confirmação na L1.
-2. **L2 — OP Sepolia:** crédito do depósito e transação de liquidação com o evento `PaymentSettled`.
+1. **L1 — Ethereum Sepolia (opcional):** hash do depósito e confirmação na L1 quando a bridge é escolhida.
+2. **L2 — OP Sepolia:** saldo existente ou crédito do depósito e transação de liquidação com o evento `PaymentSettled`.
 3. **Simulação off-chain:** conversão e payout local fictícios.
 
 ## 5. Contratos
@@ -144,8 +144,8 @@ O frontend envia o depósito e as ações de contrato por uma carteira injetada.
 | --- | --- |
 | Carteira em rede errada | Solicitar a troca para Sepolia ou OP Sepolia conforme a etapa; não enviar a transação |
 | Saldo insuficiente de ETH | Exibir a rede que precisa de ETH de teste e manter a ação indisponível |
-| Depósito ainda sem relay | Manter estado pendente, hash L1 acessível e ação de atualização; não iniciar a liquidação por dependência do depósito |
-| Sem MockUSD ou allowance | Explicar se falta token ou aprovação; não ocultar o erro retornado pela carteira |
+| Depósito opcional ainda sem relay | Manter estado pendente, hash L1 acessível e ação de atualização; não iniciar a liquidação desse cenário antes de confirmar o crédito |
+| Sem MockUSD ou allowance | Exibir saldo necessário e disponível antes de abrir a carteira; explicar a aprovação exata; não ocultar o erro retornado pela carteira |
 | `paymentId` duplicado | Tratar como erro permanente e criar uma nova operação fictícia |
 | Transação revertida ou rejeitada | Registrar o status observável, manter dados do cenário e permitir tentativa explícita da etapa ainda válida |
 | RPC indisponível | Informar indisponibilidade de leitura e preservar hashes já conhecidos |
@@ -153,7 +153,7 @@ O frontend envia o depósito e as ações de contrato por uma carteira injetada.
 ## 8. Critérios de aceite
 
 1. A aplicação deixa inequívoco que todo o fluxo usa Ethereum Sepolia e OP Sepolia, com ativos sem valor real.
-2. Um avaliador consegue abrir o hash do depósito na L1 e o hash da liquidação na L2 em exploradores públicos.
+2. Um avaliador consegue abrir o hash da liquidação na L2 e, quando a bridge opcional for usada, o hash do depósito na L1 em exploradores públicos.
 3. O depósito mostra origem L1, destino L2 e o estado de crédito na L2 sem alegar que `MockUSD` foi bridged.
 4. A liquidação emite `PaymentSettled`, transfere a quantidade exata de `MockUSD` e aumenta o saldo da carteira beneficiária pelo mesmo valor.
 5. A blockchain não recebe CNPJ, razão social, dados bancários, texto de fatura, e-mail ou dados pessoais.

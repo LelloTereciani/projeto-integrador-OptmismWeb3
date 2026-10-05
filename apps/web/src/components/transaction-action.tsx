@@ -22,6 +22,8 @@ interface TransactionActionProps {
   scenario: PaymentScenario;
   onSubmit(): void;
   onSwitchChain(chainId: SupportedChainId): void;
+  useBridge?: boolean;
+  onSelectFundingRoute?(useBridge: boolean): void;
 }
 
 const BUSY_STATES = new Set<WalletActionState["status"]>([
@@ -61,6 +63,14 @@ function reviewRows(
         { label: "Bridge", value: contracts.l1StandardBridge },
         { label: "Carteira de destino", value: scenario.payer },
         { label: "Valor exato", value: exactEthAmount() },
+      ];
+    case "use-l2-balance":
+      return [
+        { label: "Rede", value: "OP Sepolia (chain ID 11155420)" },
+        { label: "Pagador", value: scenario.payer },
+        { label: "Token", value: contracts.mockUsd },
+        { label: "Saldo necessário", value: `${formatAtomicMockUsd(scenario.quote.mockUsdAmount)} MockUSD de teste` },
+        { label: "Gas", value: "ETH de teste já disponível na OP Sepolia" },
       ];
     case "create-payment":
       return [
@@ -127,9 +137,11 @@ export function TransactionAction({
   scenario,
   onSubmit,
   onSwitchChain,
+  useBridge = false,
+  onSelectFundingRoute,
 }: TransactionActionProps) {
   const requiredChainId = action.requiredChainId;
-  const readOnlyAction = ["refresh-deposit", "refresh-transaction", "refresh-settlement", "simulate-payout"].includes(action.type);
+  const readOnlyAction = ["use-l2-balance", "refresh-deposit", "refresh-transaction", "refresh-settlement", "simulate-payout"].includes(action.type);
   const wrongNetwork = !readOnlyAction && requiredChainId !== undefined && activeChainId !== requiredChainId;
   const busy = BUSY_STATES.has(actionState.status);
   const message = statusMessage(actionState);
@@ -188,11 +200,24 @@ export function TransactionAction({
                 ? "Verificar crédito sem abrir a carteira"
                 : action.type === "refresh-transaction" || action.type === "refresh-settlement"
                   ? "Atualizar confirmação sem abrir a carteira"
+                  : action.type === "use-l2-balance"
+                    ? "Conferir saldo sem abrir a carteira"
                   : action.type === "simulate-payout"
                     ? "Exibir resultado simulado"
                     : "Revisar e abrir a carteira"}
         </button>
       )}
+
+      {scenario.stage === "commercially-approved" && onSelectFundingRoute ? (
+        <button
+          className="button button-secondary"
+          type="button"
+          disabled={busy}
+          onClick={() => onSelectFundingRoute(!useBridge)}
+        >
+          {useBridge ? "Usar saldo existente na OP Sepolia" : "Demonstrar depósito L1 → L2 (opcional)"}
+        </button>
+      ) : null}
 
       {message ? <p role={isError ? "alert" : "status"}>{message}</p> : null}
       {actionState.hash && requiredChainId ? (

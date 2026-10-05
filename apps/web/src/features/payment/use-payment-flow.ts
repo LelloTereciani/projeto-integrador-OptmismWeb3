@@ -4,6 +4,7 @@ import {
   estimateGas,
   getAccount,
   getBalance,
+  readContract,
   sendTransaction,
   simulateContract,
   waitForTransactionReceipt,
@@ -76,6 +77,7 @@ export type ReceiptResult =
 export interface PaymentFlowDependencies {
   getWallet(): Promise<WalletSnapshot | null>;
   getBalance(chainId: SupportedChainId, address: Address): Promise<bigint>;
+  getTokenBalance(address: Address, token: Address): Promise<bigint>;
   simulate(intent: TransactionIntent): Promise<SimulationResult>;
   send(intent: TransactionIntent): Promise<Hash>;
   waitForReceipt(hash: Hash, chainId: SupportedChainId): Promise<ReceiptResult>;
@@ -118,6 +120,7 @@ const PAYMENT_STAGE_ORDER: PaymentStage[] = [
   "l1-submitted",
   "l2-credit-pending",
   "l2-credited",
+  "l2-ready",
   "created",
   "approved",
   "token-approved",
@@ -291,6 +294,18 @@ export function createPaymentFlowController(
           };
         }
 
+        if (action === "deposit-l1" || action === "create-payment" || action === "settle-payment") {
+          const balance = await dependencies.getTokenBalance(wallet.address, contracts.mockUsd);
+          if (balance < scenario.quote.mockUsdAmount) {
+            return {
+              state: {
+                status: "insufficient-funds",
+                error: "Saldo de MockUSD insuficiente na carteira pagadora na OP Sepolia para esta cotação.",
+              },
+            };
+          }
+        }
+
         if (action === "deposit-l1") {
           const balance = await dependencies.getBalance(expectedIntent.chainId, wallet.address);
           if (balance < expectedIntent.value) {
@@ -423,6 +438,15 @@ export function createWagmiPaymentFlowDependencies(config: Config): PaymentFlowD
     async getBalance(chainId, address) {
       return (await getBalance(config, { address, chainId })).value;
     },
+    async getTokenBalance(address, token) {
+      return readContract(config, {
+        address: token,
+        abi: mockUsdAbi,
+        functionName: "balanceOf",
+        args: [address],
+        chainId: 11155420,
+      });
+    },
     async simulate(intent) {
       if (intent.action === "deposit-l1") {
         await simulateContract(config, {
@@ -544,6 +568,7 @@ export function usePaymentFlow(scenario: PaymentScenario | null, contracts: Paym
   const switchChain = useSwitchChain();
   const [actionState, setActionState] = useState<WalletActionState>({ status: "idle" });
   const [activeAction, setActiveAction] = useState<PaymentActionType>("none");
+  const [useBridge, setUseBridge] = useState(false);
   const controller = useMemo(
     () => (contracts ? createPaymentFlowController(createWagmiPaymentFlowDependencies(config), contracts) : null),
     [config, contracts],
@@ -558,7 +583,7 @@ export function usePaymentFlow(scenario: PaymentScenario | null, contracts: Paym
     }),
     [account.address, account.chainId, account.status],
   );
-  const action = scenario ? getAllowedAction(scenario, walletState) : null;
+  const action = scenario ? getAllowedAction(scenario, walletState, useBridge) : null;
 
   const submitAction = useCallback(async (): Promise<PaymentScenario | undefined> => {
     if (!scenario || !action || !action.enabled) return undefined;
@@ -567,6 +592,20 @@ export function usePaymentFlow(scenario: PaymentScenario | null, contracts: Paym
     if (!contracts || !controller) {
       setActionState({ status: "configuration-error", error: "Configure os endereços testnet de MockUSD e PaymentRegistry." });
       return undefined;
+    }
+
+    if (action.type === "use-l2-balance") {
+      setActionState({ status: "verifying" });
+      try {
+        const updated = await responseScenario(
+          await fetch(`/api/payments/${scenario.id}/use-l2-balance`, { method: "POST" }),
+        );
+        setActionState({ status: "confirmed" });
+        return updated;
+      } catch (error) {
+        setActionState(failureState(error));
+        return undefined;
+      }
     }
 
     if (
@@ -650,5 +689,7 @@ export function usePaymentFlow(scenario: PaymentScenario | null, contracts: Paym
     submitAction,
     switchChain: requestChain,
     activeChainId: account.chainId,
+    useBridge,
+    setUseBridge,
   };
 }

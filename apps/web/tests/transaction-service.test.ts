@@ -58,6 +58,8 @@ function fixture() {
       state: registryState,
     })),
     readAllowance: vi.fn(async () => allowance),
+    readTokenBalance: vi.fn(async () => scenario.quote.mockUsdAmount),
+    readEthBalance: vi.fn(async () => 1_000_000_000_000_000n),
   };
   const transactions = new TransactionService(database, payments, verifier);
   return {
@@ -78,6 +80,52 @@ async function creditDeposit(f: ReturnType<typeof fixture>) {
 }
 
 describe("TransactionService integration with SQLite and mocked chain receipts", () => {
+  it("uses existing L2 funds for a 5 MUSD payment in either direction without a new deposit", async () => {
+    const f = fixture();
+    const first = f.payments.createScenario({
+      payerAddress: PAYER,
+      beneficiaryAddress: BENEFICIARY,
+      brlAmountCents: 2_526n,
+      quotedRateBps: 50_000n,
+      feeBps: 100n,
+    });
+    f.payments.approveCommercial(first.id);
+    expect(first.quote.mockUsdAmount).toBe(5_000_000n);
+    expect((await f.transactions.useExistingL2Balance(first.id)).stage).toBe("l2-ready");
+    expect(f.transactions.recordTransaction(first.id, { stage: "payment-create", chainId: 11155420, hash: CREATE_HASH }).stage).toBe("l2-ready");
+    vi.mocked(f.verifier.readRegistryPayment).mockResolvedValueOnce({
+      payer: first.payer,
+      beneficiary: first.beneficiary,
+      amount: first.quote.mockUsdAmount,
+      termsHash: first.termsHash,
+      state: 0,
+    });
+    expect((await f.transactions.verifyTransaction(first.id, "payment-create")).stage).toBe("created");
+    expect(f.payments.getScenario(first.id).transactions.every((tx) => tx.chainId === 11155420)).toBe(true);
+
+    const reverse = f.payments.createScenario({
+      payerAddress: BENEFICIARY,
+      beneficiaryAddress: PAYER,
+      brlAmountCents: 2_526n,
+      quotedRateBps: 50_000n,
+      feeBps: 100n,
+    });
+    f.payments.approveCommercial(reverse.id);
+    expect(reverse.quote.mockUsdAmount).toBe(5_000_000n);
+    expect((await f.transactions.useExistingL2Balance(reverse.id)).stage).toBe("l2-ready");
+    expect(reverse.payer).toBe(first.beneficiary);
+    expect(reverse.beneficiary).toBe(first.payer);
+  });
+
+  it("blocks an L2 payment when MockUSD or gas ETH is absent", async () => {
+    const f = fixture();
+    vi.mocked(f.verifier.readTokenBalance).mockResolvedValueOnce(0n);
+    await expect(f.transactions.useExistingL2Balance(f.scenario.id)).rejects.toThrow(/MockUSD/);
+    expect(f.payments.getScenario(f.scenario.id).stage).toBe("commercially-approved");
+    vi.mocked(f.verifier.readEthBalance).mockResolvedValueOnce(0n);
+    await expect(f.transactions.useExistingL2Balance(f.scenario.id)).rejects.toThrow(/ETH/);
+  });
+
   it("preserves L1 pending, L2 pending, then confirmed credit as distinct evidence", async () => {
     const f = fixture();
     const recorded = f.transactions.recordTransaction(f.scenario.id, { stage: "l1-deposit", chainId: 11155111, hash: L1_HASH });

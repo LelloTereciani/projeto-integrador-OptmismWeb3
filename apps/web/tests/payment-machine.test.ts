@@ -75,6 +75,22 @@ describe("getAllowedAction", () => {
     });
   });
 
+  it("offers existing L2 balance by default and keeps the educational bridge optional", () => {
+    expect(getAllowedAction(scenario("commercially-approved"), wallet({ chainId: 11155420 }))).toMatchObject({
+      type: "use-l2-balance",
+      enabled: true,
+    });
+    expect(getAllowedAction(scenario("commercially-approved"), wallet(), true)).toMatchObject({
+      type: "deposit-l1",
+      enabled: true,
+      requiredChainId: 11155111,
+    });
+    expect(getAllowedAction(scenario("l2-ready"), wallet({ chainId: 11155420 }))).toMatchObject({
+      type: "create-payment",
+      enabled: true,
+    });
+  });
+
   it.each([
     ["l2-credited", "payment-create"],
     ["created", "payment-approve"],
@@ -143,6 +159,7 @@ describe("getAllowedAction", () => {
           chainId: 11155111,
         },
       }),
+      true,
     );
 
     expect(result).toMatchObject({
@@ -154,10 +171,10 @@ describe("getAllowedAction", () => {
 
   it("requires the payer account and expected network before an on-chain write", () => {
     expect(
-      getAllowedAction(scenario("commercially-approved"), wallet({ address: OTHER_ACCOUNT })),
+      getAllowedAction(scenario("commercially-approved"), wallet({ address: OTHER_ACCOUNT }), true),
     ).toMatchObject({ enabled: false, reason: expect.stringMatching(/pagadora/i) });
     expect(
-      getAllowedAction(scenario("commercially-approved"), wallet({ chainId: 11155420 })),
+      getAllowedAction(scenario("commercially-approved"), wallet({ chainId: 11155420 }), true),
     ).toMatchObject({ enabled: false, reason: expect.stringMatching(/ethereum sepolia/i) });
   });
 });

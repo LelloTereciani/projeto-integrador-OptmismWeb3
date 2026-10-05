@@ -6,6 +6,8 @@ O checklist abaixo registra a implementação e a verificação de cada etapa do
 
 **Status:** Tarefas 1 a 7 implementadas e verificadas localmente. Na Tarefa 8, o deploy dos dois contratos na OP Sepolia e a verificação exata no Sourcify foram concluídos em 2026-10-05; o Blockscout importou os fontes e marcou os contratos como verificados. Um cenário público confirmou o depósito Ethereum Sepolia → OP Sepolia, o mint separado de `19,8 MockUSD` para a pagadora e a liquidação desse valor à beneficiária. O payout bancário permanece simulado. O README e `docs/deployment-evidence.md` registram hashes, recibos e leituras públicas.
 
+**Ajuste posterior do fluxo:** o pagamento pode usar saldo de MUSD e ETH já disponível na OP Sepolia; o depósito L1 → L2 tornou-se opcional. A interface informa saldo de MUSD insuficiente, oferece uma cotação de exemplo para 5 MUSD e prepara uma nova fatura com as carteiras invertidas após a liquidação. A prova pública de uma ida e volta de 5 MUSD continua pendente de assinaturas explícitas nas duas contas, conforme o README.
+
 **Architecture:** A Next.js application contains the React frontend and a small HTTP backend with SQLite persistence for fictional payment scenarios and chain evidence. A separate Hardhat workspace compiles, tests, and deploys `MockUSD` and `PaymentRegistry`. The browser signs every write through an injected wallet; server-side adapter code independently reads receipts and events before it records an on-chain stage as confirmed.
 
 **Tech Stack:** Next.js, React, TypeScript, Wagmi, Viem, Zod, SQLite with Drizzle ORM, Hardhat 3, Solidity, OpenZeppelin Contracts, Vitest, Playwright, pnpm workspaces.

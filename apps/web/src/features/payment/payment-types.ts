@@ -5,6 +5,7 @@ export type SupportedChainId = 11155111 | 11155420;
 export type PaymentActionType =
   | "none"
   | "approve-commercial"
+  | "use-l2-balance"
   | "deposit-l1"
   | "refresh-deposit"
   | "create-payment"
@@ -16,7 +17,7 @@ export type PaymentActionType =
   | "simulate-payout";
 
 export interface PendingPaymentAction {
-  type: Exclude<PaymentActionType, "none" | "approve-commercial" | "simulate-payout">;
+  type: Exclude<PaymentActionType, "none" | "approve-commercial" | "use-l2-balance" | "simulate-payout">;
   address: `0x${string}`;
   chainId: SupportedChainId;
 }

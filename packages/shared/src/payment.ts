@@ -19,6 +19,7 @@ export type PaymentStage =
   | "l1-submitted"
   | "l2-credit-pending"
   | "l2-credited"
+  | "l2-ready"
   | "created"
   | "approved"
   | "token-approved"
