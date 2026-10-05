@@ -158,10 +158,65 @@ export function TransactionAction({
 
   return (
     <section className="action-preview" aria-labelledby="wallet-action-heading">
-      <div>
+      <div className="action-primary">
         <span className="eyebrow">Próxima ação explícita</span>
         <h2 id="wallet-action-heading">{action.label}</h2>
         <p>{action.reason}</p>
+        <div className="action-controls">
+          {wrongNetwork && requiredChainId ? (
+            <button
+              className="button button-primary"
+              type="button"
+              onClick={() => onSwitchChain(requiredChainId)}
+            >
+              Trocar para {chainName(requiredChainId)}
+            </button>
+          ) : (
+            <button
+              className="button button-primary"
+              type="button"
+              disabled={!action.enabled || !contracts || busy}
+              onClick={onSubmit}
+            >
+              {actionState.status === "submitted"
+                ? "Transação enviada"
+                : busy
+                  ? "Ação em andamento"
+                  : action.type === "refresh-deposit"
+                    ? "Verificar crédito sem abrir a carteira"
+                    : action.type === "refresh-transaction" || action.type === "refresh-settlement"
+                      ? "Atualizar confirmação sem abrir a carteira"
+                      : action.type === "use-l2-balance"
+                        ? "Conferir saldo sem abrir a carteira"
+                      : action.type === "simulate-payout"
+                        ? "Exibir resultado simulado"
+                        : "Revisar e abrir a carteira"}
+            </button>
+          )}
+
+          {scenario.stage === "commercially-approved" && onSelectFundingRoute ? (
+            <button
+              className="button button-secondary"
+              type="button"
+              disabled={busy}
+              onClick={() => onSelectFundingRoute(!useBridge)}
+            >
+              {useBridge ? "Usar saldo existente na OP Sepolia" : "Demonstrar depósito L1 → L2 (opcional)"}
+            </button>
+          ) : null}
+        </div>
+
+        {message ? <p role={isError ? "alert" : "status"}>{message}</p> : null}
+        {actionState.hash && requiredChainId ? (
+          <p>
+            Hash original: <a href={transactionExplorerUrl(requiredChainId, actionState.hash)} target="_blank" rel="noreferrer">{actionState.hash}</a>
+          </p>
+        ) : null}
+        {actionState.replacementHash && requiredChainId ? (
+          <p>
+            Hash substituto: <a href={transactionExplorerUrl(requiredChainId, actionState.replacementHash)} target="_blank" rel="noreferrer">{actionState.replacementHash}</a>
+          </p>
+        ) : null}
       </div>
 
       {contracts ? (
@@ -176,60 +231,6 @@ export function TransactionAction({
       ) : (
         <p role="alert">Os endereços de MockUSD e PaymentRegistry ainda não estão configurados.</p>
       )}
-
-      {wrongNetwork && requiredChainId ? (
-        <button
-          className="button button-secondary"
-          type="button"
-          onClick={() => onSwitchChain(requiredChainId)}
-        >
-          Trocar para {chainName(requiredChainId)}
-        </button>
-      ) : (
-        <button
-          className="button button-secondary"
-          type="button"
-          disabled={!action.enabled || !contracts || busy}
-          onClick={onSubmit}
-        >
-          {actionState.status === "submitted"
-            ? "Transação enviada"
-            : busy
-              ? "Ação em andamento"
-              : action.type === "refresh-deposit"
-                ? "Verificar crédito sem abrir a carteira"
-                : action.type === "refresh-transaction" || action.type === "refresh-settlement"
-                  ? "Atualizar confirmação sem abrir a carteira"
-                  : action.type === "use-l2-balance"
-                    ? "Conferir saldo sem abrir a carteira"
-                  : action.type === "simulate-payout"
-                    ? "Exibir resultado simulado"
-                    : "Revisar e abrir a carteira"}
-        </button>
-      )}
-
-      {scenario.stage === "commercially-approved" && onSelectFundingRoute ? (
-        <button
-          className="button button-secondary"
-          type="button"
-          disabled={busy}
-          onClick={() => onSelectFundingRoute(!useBridge)}
-        >
-          {useBridge ? "Usar saldo existente na OP Sepolia" : "Demonstrar depósito L1 → L2 (opcional)"}
-        </button>
-      ) : null}
-
-      {message ? <p role={isError ? "alert" : "status"}>{message}</p> : null}
-      {actionState.hash && requiredChainId ? (
-        <p>
-          Hash original: <a href={transactionExplorerUrl(requiredChainId, actionState.hash)} target="_blank" rel="noreferrer">{actionState.hash}</a>
-        </p>
-      ) : null}
-      {actionState.replacementHash && requiredChainId ? (
-        <p>
-          Hash substituto: <a href={transactionExplorerUrl(requiredChainId, actionState.replacementHash)} target="_blank" rel="noreferrer">{actionState.replacementHash}</a>
-        </p>
-      ) : null}
     </section>
   );
 }

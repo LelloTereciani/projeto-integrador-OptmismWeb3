@@ -390,6 +390,11 @@ test("completes the mocked payment journey only after wallet and server evidence
 
   await page.getByRole("button", { name: "Revisar e abrir a carteira" }).click();
   await expect(page.getByRole("heading", { name: "Aprovar operação fictícia" })).toBeVisible();
+  const actionButton = await page.locator("section.action-preview .action-primary button").boundingBox();
+  const reviewPanel = await page.locator("section.action-preview .transaction-review").boundingBox();
+  expect(actionButton).not.toBeNull();
+  expect(reviewPanel).not.toBeNull();
+  expect(actionButton!.x + actionButton!.width).toBeLessThan(reviewPanel!.x);
   await page.getByRole("button", { name: "Revisar e abrir a carteira" }).click();
   await expect(page.getByRole("heading", { name: "Aprovar valor exato de MockUSD" })).toBeVisible();
 

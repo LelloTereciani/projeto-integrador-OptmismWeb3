@@ -224,7 +224,11 @@ dd { margin: 0; font-weight: 650; text-align: right; }
 .payment-stepper .step-current .step-marker { border-color: var(--accent); color: var(--accent); }
 .completion-balances { margin: .9rem 0; padding: .9rem; border: 1px solid #52705d; border-radius: .7rem; background: #14231e; }
 .completion-balances p { line-height: 1.6; overflow-wrap: anywhere; }
-.action-preview { display: flex; align-items: center; gap: 1rem; justify-content: space-between; flex-wrap: wrap; }
+.action-preview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: start; gap: 1.2rem; }
+.action-primary { display: grid; align-content: start; gap: .65rem; min-width: 0; }
+.action-controls { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: .5rem; }
+.action-controls .button { max-width: 100%; }
+.transaction-review { width: 100%; margin: 0; }
 .action-preview h2 { margin: .3rem 0; font-size: 1.2rem; }
 .action-preview p { margin: 0; color: var(--muted); font-size: .84rem; }
 .chain-badge, .status-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .28rem .55rem; border: 1px solid #668860; border-radius: 2rem; color: var(--accent); background: #203329; font-size: .72rem; white-space: nowrap; }
@@ -245,7 +249,7 @@ footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .7
 footer strong { color: var(--warning); }
 
 @media (max-width: 900px) {
-  .hero, .content-grid, .scenario-grid { grid-template-columns: 1fr; }
+  .hero, .content-grid, .scenario-grid, .action-preview { grid-template-columns: 1fr; }
   .journey-guide ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hero { padding-top: 2.5rem; gap: 2rem; }
   .hero h1 { max-width: 19ch; }
@@ -266,7 +270,7 @@ footer strong { color: var(--warning); }
   .route-visual { gap: .5rem; padding: 1rem; }
   .route-visual strong { font-size: .85rem; }
   .route-visual small { font-size: .7rem; }
-  .action-preview .button { width: 100%; }
+  .action-controls .button { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
