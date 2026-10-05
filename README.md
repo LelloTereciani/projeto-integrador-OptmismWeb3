@@ -10,15 +10,16 @@ O aplicativo demonstra um **cenário fictício** de pagamento B2B: calcula uma c
 | --- | --- |
 | Frontend responsivo em português, carteira injetada, cotação, progresso e links de explorador | Implementado; testado localmente |
 | Backend HTTP, cotação determinística e persistência SQLite de cenários fictícios | Implementado; testado localmente |
-| Verificação de recibos, eventos e estado na Ethereum Sepolia e OP Sepolia | Implementada; testada com respostas de RPC controladas |
+| Verificação de recibos, eventos e estado na Ethereum Sepolia e OP Sepolia | Implementada; testada localmente e usada para confirmar o depósito público L1 → L2 |
 | `MockUSD` e `PaymentRegistry` | Implementados, compilados e testados em rede local Hardhat |
-| Testes unitários e de integração locais | Implementados: 19 do modelo compartilhado, 109 do web/backend e 18 dos contratos |
+| Testes unitários e de integração locais | Implementados: 19 do modelo compartilhado, 110 do web/backend e 18 dos contratos |
 | Teste de navegador da jornada completa | Implementado e aprovado com carteira, RPC e API simulados |
 | Deploy dos contratos na OP Sepolia | **Confirmado** por recibos públicos, bytecode e leituras dos contratos em `11155420` |
 | Código-fonte dos contratos | **Correspondência exata** de criação e execução no Sourcify; fontes importados e marcados como verificados no Blockscout |
-| Depósito L1 → L2 e jornada manual de pagamento | **Pendente**; os testes locais e de navegador usam respostas controladas |
+| Depósito Ethereum Sepolia → OP Sepolia | **Confirmado** por recibos públicos e `sourceHash` derivado do evento L1 |
+| Mint de `MockUSD` e jornada manual de pagamento | **Pendentes**; o depósito de ETH não executa a liquidação de `MockUSD` |
 
-Os testes de navegador exercitam a integração da interface com respostas controladas. Eles não comprovam depósito ou pagamento público. O formulário e a cotação podem ser executados localmente sem endereços de contratos; as ações de carteira exigem configuração e tokens de teste.
+Os testes de navegador exercitam a integração da interface com respostas controladas; a prova do depósito público está nos recibos abaixo. Eles não comprovam o pagamento em `MockUSD`. O formulário e a cotação podem ser executados localmente sem endereços de contratos; as ações de carteira exigem configuração e tokens de teste.
 
 ### Contratos públicos para inspeção
 
@@ -29,7 +30,7 @@ Os contratos abaixo foram implantados em **5 de outubro de 2026**, na **OP Sepol
 | `MockUSD` | [`0x0202d5f1D5427BcA9d3aD546832B0D82fcd7aD92`](https://sourcify.dev/server/repo-ui/11155420/0x0202d5f1D5427BcA9d3aD546832B0D82fcd7aD92) | [`0x32ed67b1…eb515`](https://optimism-sepolia.blockscout.com/tx/0x32ed67b19cd3cc04c8e563af0fa89ea1ff6340f7906203fae916ffa3580eb515) | `49702386` |
 | `PaymentRegistry` | [`0xEB8642297c98206502e8fc05f659e5a2b12b051c`](https://sourcify.dev/server/repo-ui/11155420/0xEB8642297c98206502e8fc05f659e5a2b12b051c) | [`0x1cc0244f…96321`](https://optimism-sepolia.blockscout.com/tx/0x1cc0244fadb409b9b47cd3f6786f0acb3e7c5fc24a35780f7018f5c5c0596321) | `49702393` |
 
-Esse deploy confirma apenas os contratos. **Não há ainda hash de depósito na Ethereum Sepolia, crédito correspondente na OP Sepolia, mint de demonstração, pagamento liquidado ou saldo de beneficiário comprovado.**
+O depósito de `0,0001 ETH` de teste da carteira pagadora foi confirmado na [Ethereum Sepolia, bloco `11849996`](https://sepolia.etherscan.io/tx/0x21de2edb71dc4bc35a7d512f1f84c9bbfbeddc03a36e9baa98c2a9e02d721427), e a transação derivada teve sucesso na [OP Sepolia, bloco `49707865`](https://sepolia-optimism.etherscan.io/tx/0x71e4f147ed1d0da1100109254a2751c78f614fc3df8cde2a064008aec46f5462). O `sourceHash` da L2 corresponde ao evento `TransactionDeposited` da L1. **Mint de `MockUSD`, pagamento liquidado e saldo de `MockUSD` da beneficiária ainda não foram comprovados.** Os hashes, a tentativa anterior revertida e o método de verificação estão em [docs/deployment-evidence.md](docs/deployment-evidence.md).
 
 ## O que o MVP implementa
 
@@ -184,7 +185,7 @@ Os [depósitos do OP Stack](https://docs.optimism.io/op-stack/bridging/deposit-f
 - O contrato não faz swap, conversão ou pagamento internacional. Ele registra e transfere o token de teste entre carteiras na OP Sepolia.
 - O projeto usa a rede Optimism; não opera um sequencer, batcher nem constrói um rollup próprio.
 
-A lista detalhada do que entra e do que fica fora está em [docs/mvp-scope.md](docs/mvp-scope.md). A arquitetura e os estados estão em [docs/design.md](docs/design.md), a interface em [docs/frontend.md](docs/frontend.md) e as tarefas e pendências em [docs/implementation-plan.md](docs/implementation-plan.md). [docs/deployment-evidence.md](docs/deployment-evidence.md) separa o deploy confirmado da jornada manual ainda pendente.
+A lista detalhada do que entra e do que fica fora está em [docs/mvp-scope.md](docs/mvp-scope.md). A arquitetura e os estados estão em [docs/design.md](docs/design.md), a interface em [docs/frontend.md](docs/frontend.md) e as tarefas e pendências em [docs/implementation-plan.md](docs/implementation-plan.md). [docs/deployment-evidence.md](docs/deployment-evidence.md) separa o deploy e o depósito confirmados das etapas de pagamento ainda pendentes.
 
 ## Evolução para produção — conhecimento arquitetural, fora do MVP
 
