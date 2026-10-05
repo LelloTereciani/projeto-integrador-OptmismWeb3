@@ -1,7 +1,7 @@
 "use client";
 
 import { readContract, watchAsset } from "@wagmi/core";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount, useConfig } from "wagmi";
 
 import type { PaymentScenario } from "../../../../packages/shared/src/payment";
@@ -37,9 +37,27 @@ export default function PaymentDemoPage() {
   const contracts = useMemo(() => getPaymentContracts(), []);
   const paymentFlow = usePaymentFlow(scenario, contracts);
   const action = paymentFlow.actions[0] ?? null;
+  const scenarioId = scenario?.id;
+  const scenarioStage = scenario?.stage;
   const settlementProof = scenario?.transactions.find((transaction) =>
     transaction.stage === "payment-settle" && transaction.status === "confirmed"
   );
+
+  const applyServerScenario = useCallback((latest: PaymentScenario) => {
+    setScenario((current) =>
+      current?.id === latest.id && latest.updatedAt >= current.updatedAt ? latest : current
+    );
+  }, []);
+
+  const refreshScenario = useCallback(async (id: string) => {
+    try {
+      const response = await fetch(`/api/payments/${encodeURIComponent(id)}`, { cache: "no-store" });
+      if (!response.ok) return;
+      applyServerScenario(deserializeScenario((await response.json()) as unknown));
+    } catch {
+      // Keep the last verified state; focus or the next interval will retry.
+    }
+  }, [applyServerScenario]);
 
   useEffect(() => {
     const id = new URL(window.location.href).searchParams.get("scenario");
@@ -66,6 +84,22 @@ export default function PaymentDemoPage() {
     void restoreScenario();
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!scenarioId || scenarioStage === "payout-simulated") return;
+
+    const syncWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshScenario(scenarioId);
+    };
+    const interval = window.setInterval(syncWhenVisible, 5_000);
+    window.addEventListener("focus", syncWhenVisible);
+    document.addEventListener("visibilitychange", syncWhenVisible);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", syncWhenVisible);
+      document.removeEventListener("visibilitychange", syncWhenVisible);
+    };
+  }, [scenarioId, scenarioStage, refreshScenario]);
 
   useEffect(() => {
     if (!scenario || !contracts || ["settled", "payout-simulated"].includes(scenario.stage)) {
@@ -181,8 +215,10 @@ export default function PaymentDemoPage() {
   }
 
   async function submitWalletAction() {
+    const id = scenario?.id;
     const updated = await paymentFlow.submitAction();
-    if (updated) setScenario(updated);
+    if (updated) applyServerScenario(updated);
+    if (id) await refreshScenario(id);
   }
 
   return (

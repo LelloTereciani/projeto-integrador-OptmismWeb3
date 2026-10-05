@@ -342,6 +342,8 @@ async function installMockApi(page: Page, initialStage: PaymentStage = "quoted")
 
     await route.fulfill({ status: 404, json: { error: `Unhandled mocked API path: ${path}` } });
   });
+
+  return scenario;
 }
 
 test("completes the mocked payment journey only after wallet and server evidence", async ({ page }) => {
@@ -510,4 +512,24 @@ test("restores the saved scenario from its URL without starting another deposit"
   await expect(page.getByText("scenario-e2e-001")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Aprovar operação fictícia" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Depositar ETH de teste" })).toHaveCount(0);
+});
+
+test("refreshes a stale step when a confirmed transaction has advanced the server", async ({ page }) => {
+  await installMockRpc(page);
+  const scenario = await installMockApi(page, "l2-ready");
+
+  await page.goto("/?scenario=scenario-e2e-001");
+  await expect(page.getByRole("heading", { name: "Criar operação na OP Sepolia" })).toBeVisible();
+
+  scenario.stage = "created";
+  scenario.updatedAt = "2026-10-04T12:01:00.000Z";
+  scenario.transactions.push({
+    stage: "payment-create",
+    chainId: 11155420,
+    hash: TRANSACTION_HASHES[0],
+    status: "confirmed",
+    blockNumber: "101",
+  });
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(page.getByRole("heading", { name: "Aprovar operação fictícia" })).toBeVisible();
 });
