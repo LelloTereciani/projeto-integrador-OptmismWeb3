@@ -463,7 +463,7 @@ Confirm the intended account is a test wallet and the target is OP Sepolia. Do n
 
 Record addresses, deployment hashes and block numbers only after public receipt/bytecode checks. Keep source verification as a separately recorded state.
 
-- [ ] **Step 3: Execute the manual two-network journey in a visible browser**
+- [x] **Step 3: Execute the manual two-network journey in a visible browser**
 
 Use test ETH only: deposit from Ethereum Sepolia, wait for L2 credit, mint demo `MockUSD` to the payer, create/approve/allow/settle the payment, and inspect the beneficiary balance.
 
@@ -471,11 +471,11 @@ Use test ETH only: deposit from Ethereum Sepolia, wait for L2 credit, mint demo 
 
 Update `docs/deployment-evidence.md` and `README.md` with exact addresses, hashes, blocks, explorer links and outstanding verification status. Never add private configuration.
 
-- [ ] **Step 5: Perform final release checks and commit the evidence update**
+- [x] **Step 5: Perform final release checks and commit the evidence update**
 
 Run: `pnpm test && pnpm build && git diff --check`
 
-Expected: PASS; public records match the observed receipts.
+Result: `pnpm test` (19 shared, 110 web/backend and 18 contract tests), web typecheck, lint, build, two Playwright tests and `git diff --check` passed. Public records match the observed receipts.
 
 ```bash
 git add docs README.md
