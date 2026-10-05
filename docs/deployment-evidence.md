@@ -1,6 +1,6 @@
 # Evidências de implantação e demonstração
 
-**Estado em 2026-10-05:** dois contratos implantados na OP Sepolia, com recibos de sucesso, bytecode presente e correspondência exata no Sourcify. O depósito de `0,0001 ETH` de teste da Ethereum Sepolia para a OP Sepolia foi confirmado nas duas redes e vinculado pelo `sourceHash`. O mint de `MockUSD` e a liquidação de demonstração continuam pendentes. A primeira tentativa de depósito L1 foi revertida e permanece documentada abaixo.
+**Estado em 2026-10-05:** dois contratos implantados na OP Sepolia, com recibos de sucesso, bytecode presente e correspondência exata no Sourcify. O depósito de `0,0001 ETH` de teste da Ethereum Sepolia para a OP Sepolia foi confirmado nas duas redes e vinculado pelo `sourceHash`. O mint de `19,8 MockUSD` para a carteira pagadora também foi confirmado na OP Sepolia. A liquidação de demonstração continua pendente. A primeira tentativa de depósito L1 foi revertida e permanece documentada abaixo.
 
 Os dados de deploy abaixo foram conferidos no RPC público da OP Sepolia (`eth_chainId`, `eth_getTransactionReceipt`, `eth_getCode` e `eth_call`), na API do Sourcify e na API do Blockscout. Um hash enviado pela carteira, isoladamente, não comprova confirmação nem execução da etapa seguinte. A tentativa de envio **direto** de código ao Blockscout pelo plugin Hardhat falhou sem chave Pro; depois, o Blockscout importou os fontes verificados pelo Sourcify e passou a marcar ambos como verificados.
 
@@ -48,7 +48,7 @@ O evento `TransactionDeposited` foi emitido no bloco L1 `0xfdc33858c20e96fa3d245
 | --- | --- | --- | --- | --- |
 | Depósito iniciado na Ethereum Sepolia | `0x21de2edb71dc4bc35a7d512f1f84c9bbfbeddc03a36e9baa98c2a9e02d721427` | `11849996`, status `1` | `0,0001 ETH` de teste, `TransactionDeposited` | [Etherscan Sepolia](https://sepolia.etherscan.io/tx/0x21de2edb71dc4bc35a7d512f1f84c9bbfbeddc03a36e9baa98c2a9e02d721427) |
 | Crédito do depósito na OP Sepolia | `0x71e4f147ed1d0da1100109254a2751c78f614fc3df8cde2a064008aec46f5462` | `49707865`, status `1` | `sourceHash` correspondente ao evento L1, `mint` de `0,0001 ETH` | [Etherscan OP Sepolia](https://sepolia-optimism.etherscan.io/tx/0x71e4f147ed1d0da1100109254a2751c78f614fc3df8cde2a064008aec46f5462) |
-| Mint demonstrativo de `MockUSD` | Pendente | Pendente | `balanceOf` do pagador era `0` na consulta de 2026-10-05 | Pendente |
+| Mint demonstrativo de `MockUSD` | `0x3229002993252d68e0757ab9623180c279cce69d1eebaa139c7d83e3086c3804` | `49708788`, status `1` | Evento `Transfer` da carteira zero para o pagador por `19800000` unidades atômicas; `balanceOf` do pagador retornou `19800000` (`19,8 MockUSD`) | [Etherscan OP Sepolia](https://sepolia-optimism.etherscan.io/tx/0x3229002993252d68e0757ab9623180c279cce69d1eebaa139c7d83e3086c3804) |
 | `PaymentCreated` | Pendente | Pendente | `paymentId`, pagador, beneficiário, valor e `termsHash` | Pendente |
 | `PaymentApproved` | Pendente | Pendente | `paymentId` e pagador | Pendente |
 | `MockUSD.approve` | Pendente | Pendente | Spender `PaymentRegistry` e allowance exata | Pendente |
@@ -60,6 +60,7 @@ O evento `TransactionDeposited` foi emitido no bloco L1 `0xfdc33858c20e96fa3d245
 - [x] Recibos de deploy têm status de sucesso na OP Sepolia (`11155420`).
 - [x] Bytecode, vínculo do registro com o token, correspondência exata no Sourcify e fontes importados no Blockscout conferidos publicamente.
 - [x] Crédito L2 está vinculado ao depósito L1 pelo `sourceHash` do evento `TransactionDeposited`.
+- [x] Mint de `19,8 MockUSD` para a carteira pagadora confirmado por recibo, evento e saldo do token.
 - [ ] Eventos e estado de `PaymentRegistry` correspondem ao cenário fictício.
 - [ ] O saldo de `MockUSD` do beneficiário reflete a liquidação.
 - [x] O README separa fatos verificados, pendências e etapas bancárias simuladas.

@@ -4,7 +4,7 @@ O checklist abaixo registra a implementação e a verificação de cada etapa do
 
 **Goal:** Build a full-stack, testnet-only web MVP that demonstrates an Ethereum Sepolia deposit into OP Sepolia and a fictitious `MockUSD` settlement on OP Sepolia.
 
-**Status:** Tarefas 1 a 7 implementadas e verificadas localmente. Na Tarefa 8, o deploy dos dois contratos na OP Sepolia e a verificação exata no Sourcify foram concluídos em 2026-10-05; o Blockscout importou os fontes e marcou os contratos como verificados. O depósito público da Ethereum Sepolia para a OP Sepolia foi confirmado nas duas redes e vinculado pelo `sourceHash`. O mint de `MockUSD` e o pagamento de demonstração seguem pendentes. O README registra os resultados comprovados.
+**Status:** Tarefas 1 a 7 implementadas e verificadas localmente. Na Tarefa 8, o deploy dos dois contratos na OP Sepolia e a verificação exata no Sourcify foram concluídos em 2026-10-05; o Blockscout importou os fontes e marcou os contratos como verificados. O depósito público da Ethereum Sepolia para a OP Sepolia foi confirmado nas duas redes e vinculado pelo `sourceHash`. O mint de `19,8 MockUSD` para a carteira pagadora também foi confirmado. O pagamento de demonstração segue pendente. O README registra os resultados comprovados.
 
 **Architecture:** A Next.js application contains the React frontend and a small HTTP backend with SQLite persistence for fictional payment scenarios and chain evidence. A separate Hardhat workspace compiles, tests, and deploys `MockUSD` and `PaymentRegistry`. The browser signs every write through an injected wallet; server-side adapter code independently reads receipts and events before it records an on-chain stage as confirmed.
 
