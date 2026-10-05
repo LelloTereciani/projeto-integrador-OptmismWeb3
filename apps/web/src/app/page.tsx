@@ -228,13 +228,13 @@ export default function PaymentDemoPage() {
         </section>
 
         <section className="journey-guide" aria-labelledby="journey-heading">
-          <span className="eyebrow">Como testar · 5 MUSD de ida e volta</span>
+          <span className="eyebrow">Como testar · envio e recebimento de MUSD</span>
           <h2 id="journey-heading">Siga a próxima ação mostrada na tela</h2>
           <ol>
-            <li>Informe a pagadora, a beneficiária e <strong>R$ 25,26</strong> para cotar exatamente <strong>5 MUSD</strong>. Revise e aprove o cenário fictício.</li>
+            <li>Informe duas carteiras de teste e escolha um valor fictício em BRL que a pagadora possa cobrir com MUSD. Revise a cotação e aprove o cenário.</li>
             <li>Confira o saldo já existente na OP Sepolia. As duas contas usam essa L2 para enviar MUSD. O depósito de ETH pela Ethereum Sepolia é opcional e demonstra a passagem L1 → L2.</li>
-            <li>Na conta pagadora da MetaMask, confirme cada etapa L2 quando o app pedir: criar, aprovar, autorizar 5 MUSD e liquidar.</li>
-            <li>Após a confirmação, selecione a beneficiária na MetaMask para ver os 5 MUSD. Use o botão de pagamento inverso para repetir com as carteiras trocadas.</li>
+            <li>Selecione na MetaMask a conta pagadora informada no cenário. Mantenha essa conta na OP Sepolia para criar, aprovar, autorizar o valor cotado e liquidar.</li>
+            <li>Depois de liquidar, selecione a conta beneficiária na MetaMask para ver o MUSD recebido. Para pagar de volta, crie o pagamento inverso e use essa conta como nova pagadora.</li>
           </ol>
         </section>
 
