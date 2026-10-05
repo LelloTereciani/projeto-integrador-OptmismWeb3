@@ -141,6 +141,8 @@ function rpcResult(method: string, params: unknown[] | undefined): unknown {
     }
     case "eth_getBalance":
       return "0xde0b6b3a7640000";
+    case "eth_estimateGas":
+      return "0x30d40";
     case "eth_blockNumber":
       return "0x65";
     case "eth_getTransactionReceipt": {
@@ -225,8 +227,9 @@ async function fulfillScenario(route: Route, scenario: MockScenario, status = 20
   });
 }
 
-async function installMockApi(page: Page) {
+async function installMockApi(page: Page, initialStage: PaymentStage = "quoted") {
   const scenario = scenarioFixture();
+  scenario.stage = initialStage;
   let depositVerificationCount = 0;
 
   await page.route("**/api/payments**", async (route) => {
@@ -235,6 +238,11 @@ async function installMockApi(page: Page) {
 
     if (path === "/api/payments" && route.request().method() === "POST") {
       await fulfillScenario(route, scenario, 201);
+      return;
+    }
+
+    if (path === `/api/payments/${scenario.id}` && route.request().method() === "GET") {
+      await fulfillScenario(route, scenario);
       return;
     }
 
@@ -328,7 +336,10 @@ test("completes the mocked payment journey only after wallet and server evidence
   await page.getByRole("button", { name: "Gerar cotação simulada" }).click();
 
   await expect(page.getByText("19.800000 MockUSD", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/scenario=scenario-e2e-001/);
   await page.getByRole("button", { name: "Aprovar cenário fictício" }).click();
+  await expect(page.getByText("Cenário aprovado comercialmente")).toBeVisible();
+  await page.reload();
   await expect(page.getByText("Cenário aprovado comercialmente")).toBeVisible();
 
   await page.getByRole("button", { name: "Conectar carteira" }).click();
@@ -387,4 +398,19 @@ test("completes the mocked payment journey only after wallet and server evidence
   await expect(page.getByText("Demonstração concluída")).toBeVisible();
   await expect(page.getByText("Liquidação confirmada na L2")).toBeVisible();
   await expect(page.getByText("Payout local simulado")).toBeVisible();
+});
+
+test("restores the saved scenario from its URL without starting another deposit", async ({ page }) => {
+  await installInjectedWallet(page);
+  await installMockRpc(page);
+  await installMockApi(page, "created");
+
+  await page.goto("/?scenario=scenario-e2e-001");
+  await expect(page.getByText("scenario-e2e-001")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aprovar operação fictícia" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByText("scenario-e2e-001")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aprovar operação fictícia" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Depositar ETH de teste" })).toHaveCount(0);
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { PaymentScenario } from "../../../../packages/shared/src/payment";
 import { InvoiceForm } from "../components/invoice-form";
@@ -20,10 +20,45 @@ import { getPaymentContracts } from "../lib/contracts";
 export default function PaymentDemoPage() {
   const [scenario, setScenario] = useState<PaymentScenario | null>(null);
   const [approvalError, setApprovalError] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const contracts = useMemo(() => getPaymentContracts(), []);
   const paymentFlow = usePaymentFlow(scenario, contracts);
   const action = paymentFlow.actions[0] ?? null;
+
+  useEffect(() => {
+    const id = new URL(window.location.href).searchParams.get("scenario");
+    if (!id) return;
+
+    const scenarioId = id;
+    const controller = new AbortController();
+    async function restoreScenario() {
+      try {
+        const response = await fetch(`/api/payments/${encodeURIComponent(scenarioId)}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Não foi possível recuperar o cenário salvo.");
+        const body = (await response.json()) as unknown;
+        setScenario(deserializeScenario(body));
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setRestoreError(error instanceof Error ? error.message : "Não foi possível recuperar o cenário.");
+        }
+      }
+    }
+
+    void restoreScenario();
+    return () => controller.abort();
+  }, []);
+
+  function activateScenario(created: PaymentScenario) {
+    setRestoreError(null);
+    setScenario(created);
+    const url = new URL(window.location.href);
+    url.searchParams.set("scenario", created.id);
+    window.history.replaceState(window.history.state, "", url);
+  }
 
   async function approveCommercial() {
     if (!scenario || scenario.stage !== "quoted") return;
@@ -100,7 +135,7 @@ export default function PaymentDemoPage() {
 
         <div className="content-grid">
           <section className="panel form-panel" aria-labelledby="invoice-heading">
-            <InvoiceForm onCreated={setScenario} />
+            <InvoiceForm onCreated={activateScenario} />
           </section>
 
           <aside className="panel trust-panel" aria-labelledby="trust-heading">
@@ -189,6 +224,7 @@ export default function PaymentDemoPage() {
               <span className="eyebrow">Próxima etapa</span>
               <h2 id="waiting-heading">A cotação abre a linha de evidências</h2>
               <p>Depois do cálculo, você verá a sequência L1, L2 e payout local simulado.</p>
+              {restoreError ? <p role="alert">{restoreError} Confira o ID na URL.</p> : null}
             </div>
           </section>
         )}
