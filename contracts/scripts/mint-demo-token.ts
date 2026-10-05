@@ -3,21 +3,17 @@ import { network } from "hardhat";
 const OP_SEPOLIA_CHAIN_ID = 11155420n;
 const MOCK_USD_DECIMALS = 6;
 
-function requiredArgument(name: string): string {
-  const index = process.argv.indexOf(name);
-  const value = index === -1 ? undefined : process.argv[index + 1];
-  if (value === undefined || value.startsWith("--")) {
-    throw new Error(`Missing required ${name} argument`);
+function requiredEnvironmentValue(name: string): string {
+  const value = process.env[name];
+  if (value === undefined || value.trim() === "") {
+    throw new Error(`Missing required ${name} environment variable`);
   }
   return value;
 }
 
-const recipientInput = requiredArgument("--recipient");
-const amountInput = requiredArgument("--amount");
-const tokenAddressInput = process.env.MOCK_USD_ADDRESS;
-if (tokenAddressInput === undefined) {
-  throw new Error("MOCK_USD_ADDRESS must be set in ignored environment configuration");
-}
+const recipientInput = requiredEnvironmentValue("MOCK_USD_RECIPIENT");
+const amountInput = requiredEnvironmentValue("MOCK_USD_AMOUNT");
+const tokenAddressInput = requiredEnvironmentValue("MOCK_USD_ADDRESS");
 
 const { ethers } = await network.create({
   network: "opSepolia",

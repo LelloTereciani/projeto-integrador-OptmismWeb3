@@ -4,7 +4,7 @@ O checklist abaixo registra a implementação e a verificação de cada etapa do
 
 **Goal:** Build a full-stack, testnet-only web MVP that demonstrates an Ethereum Sepolia deposit into OP Sepolia and a fictitious `MockUSD` settlement on OP Sepolia.
 
-**Status:** Tarefas 1 a 7 implementadas e verificadas localmente. Tarefa 8, deploy e evidências públicas em testnet, pendente de autorização separada. O README registra os resultados comprovados.
+**Status:** Tarefas 1 a 7 implementadas e verificadas localmente. Na Tarefa 8, o deploy dos dois contratos na OP Sepolia e a verificação exata no Sourcify foram concluídos em 2026-10-05; o Blockscout importou os fontes e marcou os contratos como verificados. A jornada manual de depósito e pagamento segue pendente. O README registra os resultados comprovados.
 
 **Architecture:** A Next.js application contains the React frontend and a small HTTP backend with SQLite persistence for fictional payment scenarios and chain evidence. A separate Hardhat workspace compiles, tests, and deploys `MockUSD` and `PaymentRegistry`. The browser signs every write through an injected wallet; server-side adapter code independently reads receipts and events before it records an on-chain stage as confirmed.
 
@@ -24,7 +24,7 @@ O checklist abaixo registra a implementação e a verificação de cada etapa do
 - The ERC-20 approval is always the exact operation amount and must visibly name `PaymentRegistry` as spender.
 - A transaction is confirmed only after a successful receipt and a state/event reread; a transaction hash alone is not success.
 - `.env` files stay ignored. Deployment keys, RPC credentials and test wallet material must not be committed.
-- This plan excludes deployment, public release and automated testnet transactions. Live testnet validation is a manual release-evidence step.
+- O desenvolvimento local das Tarefas 1 a 7 excluía deployment e transações automáticas em testnet. A Tarefa 8 foi autorizada depois, em 2026-10-05; o deploy dos contratos foi executado manualmente, sem deploy da aplicação web.
 
 ## Review Focus
 
@@ -185,7 +185,7 @@ Expected: PASS.
 
 - [x] **Step 8: Add the Ignition deployment module and test-only mint script**
 
-The module deploys `MockUSD` then injects its address into `PaymentRegistry`. The mint script accepts explicit recipient and amount arguments, refuses unsupported chain IDs, and reads the signer only from ignored environment configuration.
+The module deploys `MockUSD` then injects its address into `PaymentRegistry`. The mint script reads explicit `MOCK_USD_ADDRESS`, `MOCK_USD_RECIPIENT` and `MOCK_USD_AMOUNT` environment values, refuses unsupported chain IDs, and reads the signer from the Hardhat keystore or ignored environment configuration. Hardhat 3 `run` does not forward free-form script arguments.
 
 - [x] **Step 9: Commit the contracts**
 
@@ -455,11 +455,11 @@ git commit -m "test: cover end-to-end payment demonstration"
 - Consumes: manually deployed contract addresses, test wallets funded with test ETH only, and the browser application.
 - Produces: verified public evidence for the exact deployed version.
 
-- [ ] **Step 1: Check ignored environment configuration and active network before deployment**
+- [x] **Step 1: Check ignored environment configuration and active network before deployment**
 
 Confirm the intended account is a test wallet and the target is OP Sepolia. Do not print or copy private material.
 
-- [ ] **Step 2: Deploy `MockUSD` and `PaymentRegistry` to OP Sepolia and verify receipts**
+- [x] **Step 2: Deploy `MockUSD` and `PaymentRegistry` to OP Sepolia and verify receipts**
 
 Record addresses, deployment hashes and block numbers only after public receipt/bytecode checks. Keep source verification as a separately recorded state.
 
@@ -467,7 +467,7 @@ Record addresses, deployment hashes and block numbers only after public receipt/
 
 Use test ETH only: deposit from Ethereum Sepolia, wait for L2 credit, mint demo `MockUSD` to the payer, create/approve/allow/settle the payment, and inspect the beneficiary balance.
 
-- [ ] **Step 4: Record only verified public artifacts in documentation**
+- [x] **Step 4: Record only verified public artifacts in documentation**
 
 Update `docs/deployment-evidence.md` and `README.md` with exact addresses, hashes, blocks, explorer links and outstanding verification status. Never add private configuration.
 

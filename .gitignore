@@ -2,6 +2,7 @@ node_modules/
 .next/
 artifacts/
 cache/
+contracts/ignition/deployments/
 coverage/
 playwright-report/
 test-results/
