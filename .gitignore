@@ -12,3 +12,4 @@ test-results/
 .serena/
 *.sqlite
 *.tsbuildinfo
+.vscode/

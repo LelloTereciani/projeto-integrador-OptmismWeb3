@@ -205,8 +205,31 @@ Os [depósitos do OP Stack](https://docs.optimism.io/op-stack/bridging/deposit-f
 
 A lista detalhada do que entra e do que fica fora está em [docs/mvp-scope.md](docs/mvp-scope.md). A arquitetura e os estados estão em [docs/design.md](docs/design.md), a interface em [docs/frontend.md](docs/frontend.md) e as tarefas e pendências em [docs/implementation-plan.md](docs/implementation-plan.md). [docs/deployment-evidence.md](docs/deployment-evidence.md) documenta a jornada pública confirmada e separa o payout bancário simulado.
 
-## Evolução para produção — conhecimento arquitetural, fora do MVP
+## Melhorias futuras e evolução para produção — conhecimento arquitetural
 
-Um produto financeiro real exigiria parceiros autorizados para entrada de recursos, câmbio e payout, conciliação, KYC/KYB/AML, privacidade e controles regulatórios. Para autorizações programáveis, a assinatura manual poderia evoluir para smart accounts com políticas de valor máximo, prazo, beneficiários permitidos, nonce, revogação e múltiplas aprovações corporativas. Isso exige decisão explícita sobre custódia, gestão de chaves, auditoria independente dos contratos, monitoramento, resposta a incidentes e testes de segurança e operação adequados.
+O MVP atual separa propositalmente as etapas técnicas em 4 assinaturas sequenciais na carteira (`createPayment` → `approvePayment` → `MockUSD.approve` → `settlePayment`) para fins de demonstração didática, segregação de responsabilidades de smart contracts e verificação independente de recibos on-chain. 
 
-Essas capacidades são **propostas de evolução**: não estão implementadas, testadas nem disponíveis neste repositório. Veja [docs/production-evolution.md](docs/production-evolution.md).
+Para a evolução rumo a um produto financeiro real com experiência de usuário de nível de produção (reduzindo o fluxo para **apenas uma confirmação / um clique** e diminuindo os custos de gas em até 50%), duas rotas arquiteturais foram mapeadas:
+
+### 1. O Caminho Moderno (a ser implementado no contrato e frontend): `Permit` (EIP-2612) + Liquidação Direta
+O padrão ERC-20 tradicional exige uma transação de `approve()` prévia antes de qualquer `transferFrom()`. Stablecoins modernas (como o USDC nativo na rede Optimism) e tokens avançados implementam o padrão **EIP-2612 (`Permit`)**:
+- **Assinatura off-chain sem gas:** O pagador assina uma mensagem criptográfica padronizada (EIP-712) autorizando o gasto exato. Essa assinatura ocorre instantaneamente na carteira, sem custo de gas e sem gerar uma transação on-chain individual.
+- **Função combinada no contrato:** O contrato `PaymentRegistry` recebe essa assinatura junto aos parâmetros da fatura em uma única chamada atômica (`payInvoiceWithPermit`):
+  1. Executa `token.permit(...)` internamente usando a assinatura recebida;
+  2. Executa `token.transferFrom(...)` transferindo o valor exato à beneficiária;
+  3. Emite o evento `PaymentSettled(...)` e grava o estado final.
+- **Benefícios:** O usuário realiza **apenas 1 clique e 1 transação na blockchain**, com redução de ~40% a 50% nos custos de gas (eliminando as taxas base de transações separadas).
+
+### 2. O Caminho Corporativo: Account Abstraction (ERC-4337 / EIP-5792) e Smart Accounts
+Em pagamentos B2B entre PMEs, empresas não costumam utilizar carteiras EOA comuns (como MetaMask básica), mas sim **Smart Accounts** (carteiras de contrato inteligente programáveis, como Safe, Biconomy ou ZeroDev):
+- **Transações em lote (*Batching* / *Multicall* atômico):** A aplicação empacota todas as instruções (`createPayment`, `approvePayment`, `token.approve`, `settlePayment`) dentro de um único pacote (*UserOperation*). O usuário confirma **apenas uma vez** e todas as etapas são executadas de forma indivisível no mesmo bloco. Se qualquer etapa falhar, toda a operação reverte com segurança.
+- **Patrocínio de taxas (*Paymaster*):** A empresa operadora do serviço de pagamento pode patrocinar o gas em segundo plano ou debitar as taxas diretamente na moeda da fatura, eliminando a necessidade de o cliente final possuir ETH para gas na carteira.
+- **Políticas corporativas e governança:** Permite definir limites de gastos diários, listas de beneficiários autorizados (*allowlists*), nonces por departamento e regras de múltiplas assinaturas (*multisig*) para liberação de remessas de maior valor.
+
+| Abordagem | Confirmações | Experiência do Usuário (UX) | Cenário de Aplicação |
+|---|:---:|---|---|
+| **MVP Atual (Didático)** | 4 | Segregação explícita de recibos e estados on-chain | Demonstração técnica, auditoria e portfólio |
+| **Caminho Moderno (`Permit` EIP-2612)** | 1 | 1 assinatura off-chain (sem gas) + 1 transação | Gateways Web3 ágeis e pagamentos em USDC |
+| **Caminho Corporativo (Account Abstraction)** | 1 | 1 clique, gas patrocinado (*Paymaster*), regras de governança | Plataformas B2B empresariais e fintechs |
+
+Além da camada de contratos, a transição para produção envolveria parceiros bancários regulados para câmbio e payout local, controles de KYC/KYB/AML, auditoria formal de segurança e políticas rigorosas de chaves. Consulte [docs/production-evolution.md](docs/production-evolution.md) para a análise detalhada.

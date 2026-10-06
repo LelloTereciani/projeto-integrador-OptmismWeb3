@@ -61,9 +61,9 @@ export function PaymentStepper({ scenario, useBridge }: PaymentStepperProps) {
               <span className="step-marker" aria-hidden="true">
                 {state === "complete" ? "✓" : String(index + 1).padStart(2, "0")}
               </span>
-              <div>
+              <div className="step-body">
                 <span className="step-group">{step.group}</span>
-                <strong>{step.title}</strong>
+                <strong className="step-title">{step.title}</strong>
                 <p>{step.detail}</p>
                 <span className="step-state">
                   {state === "complete" ? "Confirmada" : state === "current" ? "Etapa atual" : "Bloqueada"}

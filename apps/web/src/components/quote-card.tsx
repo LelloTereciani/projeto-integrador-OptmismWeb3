@@ -18,9 +18,9 @@ export function QuoteCard({ scenario, isApproving, onApprove }: QuoteCardProps) 
       <h2 id="quote-heading">Resumo antes de qualquer assinatura</h2>
 
       <div className="quote-amount">
-        <span>Beneficiário receberia</span>
-        <strong>{formatAtomicMockUsd(scenario.quote.mockUsdAmount)} MockUSD</strong>
-        <small>Token de teste, sem valor monetário</small>
+        <span className="quote-amount-label">Beneficiário receberia</span>
+        <strong className="quote-amount-value">{formatAtomicMockUsd(scenario.quote.mockUsdAmount)} MockUSD</strong>
+        <small className="quote-amount-note">Token de teste, sem valor monetário</small>
       </div>
 
       <dl className="quote-breakdown">

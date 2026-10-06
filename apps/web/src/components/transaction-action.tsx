@@ -129,6 +129,69 @@ function statusMessage(state: WalletActionState): string | null {
   }
 }
 
+interface PhaseAnnotation {
+  stepBadge?: string;
+  note: string;
+}
+
+function phaseAnnotation(actionType: PaymentAction["type"]): PhaseAnnotation | null {
+  switch (actionType) {
+    case "create-payment":
+      return {
+        stepBadge: "Etapa 1 de 4 de assinaturas",
+        note: "Esta é a 1ª confirmação na carteira para registrar os termos da operação no contrato na OP Sepolia. A transferência de MockUSD só ocorre na etapa 4.",
+      };
+    case "approve-payment":
+      return {
+        stepBadge: "Etapa 2 de 4 de assinaturas",
+        note: "Operação registrada! Esta 2ª confirmação grava o consentimento comercial do pagador no contrato PaymentRegistry.",
+      };
+    case "approve-token":
+      return {
+        stepBadge: "Etapa 3 de 4 de assinaturas",
+        note: "Operação aprovada! Esta 3ª confirmação autoriza o contrato a movimentar apenas o valor exato da fatura em MockUSD.",
+      };
+    case "settle-payment":
+      return {
+        stepBadge: "Etapa 4 de 4 (Final)",
+        note: "Última confirmação na carteira! A liquidação final transferirá efetivamente os tokens de teste para a beneficiária.",
+      };
+    case "deposit-l1":
+      return {
+        stepBadge: "Demonstração L1 → L2",
+        note: "Depósito demonstrativo opcional de ETH de teste na Ethereum Sepolia para a OP Sepolia via Standard Bridge.",
+      };
+    default:
+      return null;
+  }
+}
+
+function submitButtonLabel(actionType: PaymentAction["type"]): string {
+  switch (actionType) {
+    case "create-payment":
+      return "Revisar e abrir a carteira (Etapa 1/4 · Criar operação)";
+    case "approve-payment":
+      return "Revisar e abrir a carteira (Etapa 2/4 · Aprovar operação)";
+    case "approve-token":
+      return "Revisar e abrir a carteira (Etapa 3/4 · Aprovar MockUSD)";
+    case "settle-payment":
+      return "Revisar e abrir a carteira (Etapa 4/4 · Liquidar pagamento)";
+    case "deposit-l1":
+      return "Revisar e abrir a carteira (Depósito de teste L1)";
+    case "refresh-deposit":
+      return "Verificar crédito sem abrir a carteira";
+    case "refresh-transaction":
+    case "refresh-settlement":
+      return "Atualizar confirmação sem abrir a carteira";
+    case "use-l2-balance":
+      return "Conferir saldo sem abrir a carteira";
+    case "simulate-payout":
+      return "Exibir resultado simulado";
+    default:
+      return "Revisar e abrir a carteira";
+  }
+}
+
 export function TransactionAction({
   action,
   actionState,
@@ -145,6 +208,7 @@ export function TransactionAction({
   const wrongNetwork = !readOnlyAction && requiredChainId !== undefined && activeChainId !== requiredChainId;
   const busy = BUSY_STATES.has(actionState.status);
   const message = statusMessage(actionState);
+  const annotation = phaseAnnotation(action.type);
   const isError = [
     "rejected",
     "reverted",
@@ -162,6 +226,14 @@ export function TransactionAction({
         <span className="eyebrow">Próxima ação explícita</span>
         <h2 id="wallet-action-heading">{action.label}</h2>
         <p>{action.reason}</p>
+
+        {annotation ? (
+          <div className="phase-callout" role="note">
+            {annotation.stepBadge ? <span className="phase-badge">{annotation.stepBadge}</span> : null}
+            <p className="phase-note">{annotation.note}</p>
+          </div>
+        ) : null}
+
         <div className="action-controls">
           {wrongNetwork && requiredChainId ? (
             <button
@@ -182,15 +254,7 @@ export function TransactionAction({
                 ? "Transação enviada"
                 : busy
                   ? "Ação em andamento"
-                  : action.type === "refresh-deposit"
-                    ? "Verificar crédito sem abrir a carteira"
-                    : action.type === "refresh-transaction" || action.type === "refresh-settlement"
-                      ? "Atualizar confirmação sem abrir a carteira"
-                      : action.type === "use-l2-balance"
-                        ? "Conferir saldo sem abrir a carteira"
-                      : action.type === "simulate-payout"
-                        ? "Exibir resultado simulado"
-                        : "Revisar e abrir a carteira"}
+                  : submitButtonLabel(action.type)}
             </button>
           )}
 
